@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="tak! — thanks are kind! Reconocimiento digital para las personas que hacen la diferencia." />
+  <meta name="theme-color" content="#f57c73" />
+  <title>tak! — thanks are kind!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20260820-1148" />
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <div class="header-reveal-zone" aria-hidden="true"><span class="header-reveal-hint">Acerca el mouse para ver el menú</span></div>
+  <header class="site-header" id="inicio">
+    <a class="brand" href="#inicio" aria-label="tak! — thanks are kind!, inicio">
+      <img src="Assets%20/Assets%20Png%20/Logo/tak!logo.png" alt="tak!" />
+    </a>
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr-only">Abrir menú</span></button>
+    <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
+      <a href="#conocenos">Conócenos</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="#contacto">Contacto</a>
+      <a class="button button-small" href="#contacto">Hablemos</a>
+    </nav>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">Haz que agradecer<br />sea parte de la<br />experiencia.</h1>
+        <p>tak! conecta a huéspedes y comensales con las personas que hicieron la diferencia.<br />Sin efectivo. Sin app.</p>
+        <a class="button" href="#contacto">Hablemos</a>
+      </div>
+      <div class="hero-art" aria-label="Teléfono acercándose a una wristband NFC de silicona coral">
+        <div class="thanks-pattern" aria-hidden="true"></div>
+        <div class="nfc-rings" aria-hidden="true"></div>
+        <img src="public/assets/hero-phone-wristband.png" alt="Mano con teléfono y wristband NFC tak! de silicona coral" />
+      </div>
+    </section>
+
+    <section class="about section" id="conocenos">
+      <div class="about-copy">
+        <p class="section-label">Conócenos</p>
+        <h2>Una forma más cálida y directa de reconocer a quienes hacen posible una gran experiencia.</h2>
+        <p>tak! devuelve el agradecimiento a lo más simple: un gesto humano entre personas.</p>
+        <p>Huéspedes y comensales reconocen el trabajo que los hace sentir bien. Sin efectivo. Sin app.</p>
+      </div>
+      <figure class="about-photo">
+        <img src="public/assets/three-stacked-wristbands.png" alt="Tres wristbands NFC coral de tak! apiladas" />
+      </figure>
+    </section>
+
+    <section class="journey section" id="como-funciona" aria-labelledby="journey-title">
+      <p class="section-label">Cómo funciona</p>
+      <h2 id="journey-title">Acerca. Elige. Agradece.</h2>
+      <ol class="steps">
+        <li><span class="step-number">1</span><div><h3>Acerca tu teléfono</h3><p>Acércalo a la wristband tak! para abrir la experiencia.</p><div class="step-visual product-mini"><img src="public/assets/hero-phone-wristband.png" alt="Teléfono junto a una wristband NFC" /></div></div></li>
+        <li><span class="step-number">2</span><div><h3>Elige a quién agradecer</h3><p>Identifica a la persona y elige un monto.</p><div class="phone-demo" aria-label="Vista ilustrativa de selección"><div class="phone-top"></div><strong>¿A quién quieres agradecer?</strong><span>María · Camarista</span><span>Carlos · Recepción</span><span>Ana · Atención</span><div class="amounts"><b>$10</b><b>$20</b><b>$30</b></div></div><small>Vista ilustrativa</small></div></li>
+        <li><span class="step-number">3</span><div><h3>Confirma tu agradecimiento</h3><p>Revisa los detalles antes de confirmar.</p><div class="phone-demo phone-success" aria-label="Vista ilustrativa de confirmación"><div class="check">✓</div><strong>¡Gracias!</strong><span>Tu agradecimiento fue enviado.</span><img class="product-wordmark" src="Assets%20/Assets%20Png%20/Logo/tak!logo.png" alt="tak!" /></div></div></li>
+      </ol>
+    </section>
+
+    <section class="services" id="servicios" aria-label="Servicios para hoteles y restaurantes">
+      <article class="service service-hotel"><div class="service-copy"><p class="section-label">Hotel</p><h2>Más reconocimiento para tu equipo, menos fricción para tus huéspedes.</h2><h3>Para tu equipo</h3><p>Reconocimiento justo y directo que motiva y fortalece el orgullo de pertenecer.</p><h3>Para tus huéspedes</h3><p>Agradecer es fácil, discreto y seguro, incluso desde el extranjero.</p></div></article>
+      <article class="service service-restaurant"><div class="service-copy"><p class="section-label">Restaurante</p><h2>El agradecimiento no termina cuando llega la cuenta.</h2><h3>Para tu equipo</h3><p>Reconocimiento visible que impulsa el servicio y mejora el ambiente de trabajo.</p><h3>Para tus comensales</h3><p>Agradecer es parte natural de la experiencia, sin fricciones ni efectivo.</p></div></article>
+    </section>
+
+    <section class="trust" id="confianza">
+      <h2>Confianza que<br />se entiende.</h2>
+      <div><svg class="trust-icon" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="22" r="10"/><path d="M14 51c2-11 9-17 18-17s16 6 18 17"/><circle cx="32" cy="32" r="27"/></svg><h3>Identidad visible</h3><p>Todos saben quién puede recibir un agradecimiento.</p></div>
+      <div><svg class="trust-icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="12" width="44" height="40" rx="12"/><path d="m21 33 8 8 15-18"/></svg><h3>Claridad antes de confirmar</h3><p>La persona y el monto se muestran antes de confirmar.</p></div>
+      <div><svg class="trust-icon" viewBox="0 0 64 64" aria-hidden="true"><circle cx="17" cy="18" r="6"/><circle cx="47" cy="46" r="6"/><path d="M21 22c16 1 22 7 22 20M43 42l-8-1m8 1-1-8"/></svg><h3>Una experiencia diseñada para ser trazable</h3><p>Cada agradecimiento queda registrado con su contexto.</p></div>
+    </section>
+
+    <section class="contact section" id="contacto">
+      <div class="contact-intro"><p class="section-label">Contacto</p><h2>¿Listo para llevar<br />tak! a tu negocio?</h2><div class="contact-pattern" aria-hidden="true"></div></div>
+      <form class="contact-form" novalidate>
+        <div class="field"><label for="name">Nombre</label><input id="name" name="name" autocomplete="name" required /><small class="error"></small></div>
+        <div class="field"><label for="business">Negocio</label><input id="business" name="business" autocomplete="organization" required /><small class="error"></small></div>
+        <div class="field"><label for="type">Tipo de negocio</label><select id="type" name="type" required><option value="">Selecciona</option><option>Hotel</option><option>Restaurante</option></select><small class="error"></small></div>
+        <div class="field"><label for="email">Correo</label><input id="email" name="email" type="email" autocomplete="email" required /><small class="error"></small></div>
+        <div class="field field-wide"><label for="message">Mensaje</label><textarea id="message" name="message" rows="4" placeholder="Cuéntanos sobre tu negocio y cómo te gustaría usar tak!." required></textarea><small class="error"></small></div>
+        <label class="consent field-wide"><input type="checkbox" name="privacy" required /> <span>He leído el <a href="#privacidad">Aviso de Privacidad</a>.</span></label>
+        <button class="button field-wide" type="submit">Quiero conocer tak!</button>
+        <p class="demo-note field-wide">Esta vista es una demostración. Tus datos no se enviarán todavía.</p>
+        <p class="form-status field-wide" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="faq section" id="preguntas">
+      <p class="section-label">Preguntas frecuentes</p>
+      <div class="faq-list">
+        <details><summary>¿Cómo funciona tak! para mis huéspedes o comensales?</summary><p>Acercan su teléfono a la wristband NFC, identifican a la persona y siguen una experiencia clara desde el navegador.</p></details>
+        <details><summary>¿Es necesario descargar alguna app?</summary><p>No. La experiencia está pensada para abrirse desde el navegador del teléfono.</p></details>
+        <details><summary>¿Cómo sabe mi equipo que fue reconocido?</summary><p>La experiencia conserva una referencia clara de la persona reconocida y del agradecimiento realizado.</p></details>
+        <details><summary>¿Qué información se muestra antes de confirmar?</summary><p>La persona destinataria y el monto elegido se revisan antes de confirmar.</p></details>
+        <details><summary>¿Cómo empiezo a usar tak! en mi negocio?</summary><p>Cuéntanos sobre tu hotel o restaurante y nuestro equipo se pondrá en contacto contigo.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" id="privacidad"><img class="footer-wordmark" src="Assets%20/Assets%20Png%20/Logo/tak!logo.png" alt="tak!" /><div><a href="#contacto">Contacto</a><a href="#privacidad">Privacidad</a></div></footer>
+</body>
+</html>
