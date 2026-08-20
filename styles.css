@@ -313,3 +313,26 @@ main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 @media(max-width:900px){:root{--footer-height:218px}.footer{height:var(--footer-height);min-height:0;grid-template-columns:auto 1fr}.footer-links{grid-column:1/-1;justify-content:flex-start}}
 @media(max-width:600px){:root{--footer-height:286px}.footer{padding:26px 22px;gap:20px}.footer>p{text-align:right}.footer-links{display:grid;grid-template-columns:1fr 1fr;width:100%}.footer-links a{padding-inline:12px}}
 @media(prefers-reduced-motion:reduce){.footer-brand,.footer-links a{transition:none!important}}
+
+/* Subtract Design v2: un gesto táctil protagonista por escena. */
+.hero-copy:before{opacity:.28;animation:none}
+.about:before,.about-photo:after,.services:before,.trust:after,.contact:before,.faq:after{display:none}
+.about-photo:before{opacity:.82;animation:none}
+.journey:before{opacity:.08;animation:none}
+.steps>li:nth-child(2) .phone-demo,.steps>li:nth-child(3) .phone-demo{animation:none}
+.trust:before{opacity:.16;animation:none}
+.trust>div{animation:none;border-radius:34px;box-shadow:0 10px 0 var(--coral-dark)}
+.trust>div:nth-of-type(1),.trust>div:nth-of-type(2),.trust>div:nth-of-type(3){border-radius:34px}
+.trust>div:hover{translate:0 -4px;rotate:0deg;box-shadow:0 14px 0 var(--coral-dark)}
+.contact-form{animation:none;border-width:2px;box-shadow:0 10px 0 var(--contrast)}
+.contact-form:before{display:none}
+.contact-pattern{box-shadow:none;opacity:.78}
+.faq:before{opacity:.1;animation:none}
+.faq-list details,.faq-list details:nth-child(even),.faq-list details:nth-child(odd){rotate:0deg;border-color:rgb(38 25 23/.72);box-shadow:0 5px 0 var(--contrast)}
+.faq-list details:hover,.faq-list details:nth-child(even):hover{translate:0 -3px;box-shadow:0 8px 0 var(--contrast)}
+.faq-list summary:after,.faq-list details:nth-child(even) summary:after{background:var(--coral);box-shadow:0 3px 0 var(--coral-dark)}
+.faq-list details[open] summary:after,.faq-list details:nth-child(even)[open] summary:after{box-shadow:0 1px 0 var(--coral-dark)}
+.footer{box-shadow:none}
+.footer-brand,.footer-brand:hover{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;translate:0 0}
+.footer-links a,.footer-links a:nth-child(even),.footer-links a:hover,.footer-links a:nth-child(even):hover{border-width:1.5px;border-radius:14px;background:#fff;box-shadow:0 3px 0 var(--contrast);translate:0 0}
+.footer-links a:active{translate:0 2px;box-shadow:0 1px 0 var(--contrast)}
