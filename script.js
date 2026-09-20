@@ -3,8 +3,13 @@ const navigation = document.querySelector('.site-nav');
 const header = document.querySelector('.site-header');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+const touchOnly = window.matchMedia('(hover: none)');
+let lastY = window.scrollY;
+
 const syncHeader = () => {
-  const scrolled = window.scrollY > 24;
+  const y = window.scrollY;
+  const scrolled = y > 24 && !(touchOnly.matches && y < lastY);
+  lastY = y;
   header.classList.toggle('is-scrolled', scrolled);
   document.body.classList.toggle('is-header-hidden', scrolled);
   if (scrolled) {
