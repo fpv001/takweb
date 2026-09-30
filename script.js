@@ -90,24 +90,87 @@ if (!reducedMotion.matches && 'IntersectionObserver' in window) {
   window.addEventListener('scroll', requestSceneProgress, { passive: true });
   window.addEventListener('resize', requestSceneProgress);
 
+  // Hero: el producto sigue al mouse con inercia, nunca en seco.
   const hero = document.querySelector('.hero');
+  const pointerTarget = { x: 0, y: 0 };
+  const pointerCurrent = { x: 0, y: 0 };
   let pointerFrame = 0;
+  const easePointer = () => {
+    pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * 0.045;
+    pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * 0.045;
+    hero.style.setProperty('--pointer-x', pointerCurrent.x.toFixed(4));
+    hero.style.setProperty('--pointer-y', pointerCurrent.y.toFixed(4));
+    const settled = Math.abs(pointerTarget.x - pointerCurrent.x) < 0.001 && Math.abs(pointerTarget.y - pointerCurrent.y) < 0.001;
+    pointerFrame = settled ? 0 : window.requestAnimationFrame(easePointer);
+  };
+  const followPointer = () => { if (!pointerFrame) pointerFrame = window.requestAnimationFrame(easePointer); };
   hero.addEventListener('pointermove', (event) => {
-    if (event.pointerType !== 'mouse' || pointerFrame) return;
-    pointerFrame = window.requestAnimationFrame(() => {
-      pointerFrame = 0;
-      const bounds = hero.getBoundingClientRect();
-      const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
-      const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
-      hero.style.setProperty('--pointer-x', x.toFixed(3));
-      hero.style.setProperty('--pointer-y', y.toFixed(3));
-    });
+    if (event.pointerType !== 'mouse') return;
+    const bounds = hero.getBoundingClientRect();
+    pointerTarget.x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+    pointerTarget.y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+    followPointer();
   });
   hero.addEventListener('pointerleave', () => {
-    hero.style.setProperty('--pointer-x', '0');
-    hero.style.setProperty('--pointer-y', '0');
+    pointerTarget.x = 0;
+    pointerTarget.y = 0;
+    followPointer();
   });
 }
+
+// Scroll suavizado con inercia para rueda y trackpad en escritorio.
+// En táctil y con reduced motion se conserva el scroll nativo.
+const smoothScroll = (() => {
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+  if (reducedMotion.matches || !finePointer.matches) return null;
+  document.documentElement.classList.add('smooth-scroll');
+  let target = window.scrollY;
+  let current = target;
+  let frame = 0;
+  const maxScroll = () => document.documentElement.scrollHeight - window.innerHeight;
+  const clamp = (value) => Math.max(0, Math.min(maxScroll(), value));
+  const step = () => {
+    current += (target - current) * 0.085;
+    if (Math.abs(target - current) < 0.5) current = target;
+    window.scrollTo({ top: current, behavior: 'instant' });
+    frame = current === target ? 0 : window.requestAnimationFrame(step);
+  };
+  const run = () => { if (!frame) frame = window.requestAnimationFrame(step); };
+  const sync = () => { target = current = window.scrollY; };
+
+  window.addEventListener('wheel', (event) => {
+    if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    if (document.querySelector('dialog[open]') || event.target.closest('textarea')) return;
+    event.preventDefault();
+    if (!frame) sync();
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+    target = clamp(target + event.deltaY * unit);
+    run();
+  }, { passive: false });
+  // Teclado, barra de scroll o búsqueda: el scroll nativo manda y se sincroniza.
+  window.addEventListener('scroll', () => { if (!frame) sync(); }, { passive: true });
+  window.addEventListener('resize', () => { target = clamp(target); });
+
+  return {
+    to(y) {
+      if (!frame) sync();
+      target = clamp(y);
+      run();
+    },
+  };
+})();
+
+// Anclas internas: mismo desplazamiento suave que la rueda.
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!smoothScroll || !link || link.matches('[data-dialog], .skip-link')) return;
+  const hash = link.getAttribute('href');
+  const target = hash === '#inicio' ? null : document.querySelector(hash);
+  if (hash !== '#inicio' && !target) return;
+  event.preventDefault();
+  smoothScroll.to(target ? target.getBoundingClientRect().top + window.scrollY : 0);
+  history.pushState(null, '', hash);
+});
 
 // Menú móvil.
 menuButton.addEventListener('click', () => setMenu(!menuOpen()));

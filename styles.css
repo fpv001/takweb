@@ -47,7 +47,8 @@
 
 /* Navegación por escenas: cada sección ocupa al menos un viewport y el scroll
    se acomoda a ella sin frenar el recorrido ni atrapar la rueda. */
-html{scroll-snap-type:y proximity}
+html{scroll-snap-type:none}
+html.smooth-scroll{scroll-behavior:auto}
 .site-header{position:sticky;top:0;z-index:50}
 main>section{scroll-snap-align:start;overflow:hidden}
 .hero,.about,.journey,.services,.trust,.contact,.faq{min-height:100svh}
@@ -297,10 +298,10 @@ section{scroll-margin-top:0}
 @media(prefers-reduced-motion:reduce){.footer-brand,.footer-links a{transition:none!important}}
 
 /* Subtract Design v2: un gesto táctil protagonista por escena. */
-.hero-copy:before{opacity:.28;animation:none}
+.hero-copy:before{opacity:.28;animation:none;border-radius:42% 58% 64% 36%/48% 42% 58% 52%}
 .about:before,.about-photo:after,.services:before,.trust:after,.contact:before,.faq:after{display:none}
 .about-photo:before{opacity:.82;animation:none}
-.journey:before{opacity:.08;animation:none}
+.journey:before{opacity:.08;animation:none;border-radius:61% 39% 43% 57%/39% 61% 39% 61%}
 .steps>li:nth-child(2) .phone-demo,.steps>li:nth-child(3) .phone-demo{animation:none}
 .trust:before{opacity:.14;animation:none;border-radius:0 0 0 100%;background:var(--coral)}
 .trust h2:after{content:"•••";display:block;margin-top:24px;color:#fff;font-size:17px;line-height:1;letter-spacing:12px;opacity:.42}
@@ -322,7 +323,7 @@ section{scroll-margin-top:0}
 
 /* Móvil: las escenas crecen con su contenido; el hero apila copy y producto. */
 @media(max-width:900px){
-  html{scroll-snap-type:y proximity;overflow-x:clip}
+  html{overflow-x:clip}
   body{overflow-x:clip}
   main>section,.footer{height:auto;min-height:100svh;scroll-snap-stop:normal;overflow:hidden}
   .journey,.contact,.faq{overflow-y:hidden;padding-bottom:56px}
