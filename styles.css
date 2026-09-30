@@ -45,23 +45,17 @@
   .faq{padding-top:50px;padding-bottom:42px}.faq-list summary{min-height:60px}
 }
 
-/* Navegación por escenas: una sección completa visible en cada posición. */
-html{scroll-snap-type:y mandatory;scroll-padding-top:90px}
+/* Navegación por escenas: cada sección ocupa al menos un viewport y el scroll
+   se acomoda a ella sin frenar el recorrido ni atrapar la rueda. */
+html{scroll-snap-type:y proximity}
 .site-header{position:sticky;top:0;z-index:50}
-.site-header{transition:background-color .2s}.site-header.is-scrolled{background:transparent}.site-header.is-scrolled .site-nav,.site-header.is-scrolled .menu-button{opacity:0;visibility:hidden;pointer-events:none}.site-header .site-nav,.site-header .menu-button{transition:opacity .2s,visibility .2s}
-main>section{height:calc(100svh - 90px);min-height:0;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden}
-.hero{min-height:0}.hero-art{min-height:0;height:100%}
-.about,.about-photo{min-height:0}
-.journey,.services,.service,.trust,.contact,.faq{min-height:0}
-.journey,.contact,.faq{overflow-y:auto;overscroll-behavior:contain}
+main>section{scroll-snap-align:start;overflow:hidden}
+.hero,.about,.journey,.services,.trust,.contact,.faq{min-height:100svh}
+.hero-art,.about-photo,.service{min-height:0}
 .footer{scroll-snap-align:end}
 
 @media(max-width:900px){
-  html{scroll-padding-top:76px}
-  main>section{height:calc(100svh - 76px)}
-  .hero-art{min-height:0}
   .about-photo{height:auto}
-  .services{overflow-y:auto;overscroll-behavior:contain}
 }
 
 /* Incremento “juguete premium”: materialidad táctil, precisa y contenida. */
@@ -123,13 +117,14 @@ main>section{height:calc(100svh - 90px);min-height:0;scroll-snap-align:start;scr
 @media(max-width:600px){.hero-copy{padding-right:34%;background:linear-gradient(90deg,#fff 0 64%,rgb(255 255 255/.94) 78%,transparent 94%)}.hero-copy p{max-width:290px}.hero-art img{right:-285px;bottom:-55px;width:540px}.hero-copy:before{right:2%;opacity:.26}}
 @media(prefers-reduced-motion:reduce){.hero-copy:before,.about:before,.journey:before,.services:before,.trust:before,.contact:before,.faq:before,.hero-art img,.thanks-pattern,.nfc-rings,.product-mini img,.phone-demo,.contact-pattern{animation:none!important}.motion-ready *{opacity:1!important;transform:none!important;transition:none!important}}
 
-/* Profundidad ligada al scroll; el texto conserva siempre su propia capa superior. */
-.about-photo img{translate:0 calc(var(--scroll-progress,0) * -22px);scale:1.04;transition:translate .12s linear}
+/* Profundidad ligada al scroll; el texto conserva siempre su propia capa superior.
+   Sin transition: el valor ya se actualiza por frame y una transición lo retrasa. */
+.about-photo img{translate:0 calc(var(--scroll-progress,0) * -22px);scale:1.04}
 .journey:before{translate:0 calc(var(--scroll-progress,0) * 34px)}
-.steps{translate:0 calc(var(--scroll-progress,0) * -10px);transition:translate .12s linear}
+.steps{translate:0 calc(var(--scroll-progress,0) * -10px)}
 .services:before{translate:calc(var(--scroll-progress,0) * 24px) calc(var(--scroll-progress,0) * -30px)}
-.service-hotel .service-copy{translate:0 calc(var(--scroll-progress,0) * -12px);transition:translate .12s linear}
-.service-restaurant .service-copy{translate:0 calc(var(--scroll-progress,0) * 12px);transition:translate .12s linear}
+.service-hotel .service-copy{translate:0 calc(var(--scroll-progress,0) * -12px)}
+.service-restaurant .service-copy{translate:0 calc(var(--scroll-progress,0) * 12px)}
 .contact-pattern{translate:0 calc(var(--scroll-progress,0) * -18px)}
 @media(prefers-reduced-motion:reduce){.about-photo img,.journey:before,.steps,.services:before,.service-copy,.contact-pattern{translate:none!important;scale:none!important}}
 
@@ -140,29 +135,24 @@ main>section{height:calc(100svh - 90px);min-height:0;scroll-snap-align:start;scr
 .footer a{color:var(--ink)}
 @media(max-width:600px){.footer-wordmark{width:96px}}
 
-/* Contrato de escenas: exactamente un viewport visible, sin anticipar la anterior o la siguiente. */
+/* Contrato de escenas: cada escena llena el viewport; el header flota encima. */
 html{scroll-padding-top:0}
 section{scroll-margin-top:0}
 .site-header{position:fixed;inset:0 0 auto 0;width:100%}
-main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 .hero-copy{padding-top:146px}
 .journey{padding-top:118px}
 .service{padding-top:132px}
 .trust{padding-top:118px}
 .contact{padding-top:120px}
 .faq{padding-top:118px}
-.footer{height:100svh;scroll-snap-align:start;scroll-snap-stop:always;align-items:center;padding-top:90px;padding-bottom:90px}
 
 @media(max-width:900px){
-  html{scroll-padding-top:0}
-  main>section{height:100svh}
   .hero-copy{padding-top:116px}
   .journey{padding-top:104px}
   .service{padding-top:112px}
   .trust{padding-top:104px}
   .contact{padding-top:104px}
   .faq{padding-top:104px}
-  .footer{height:100svh;padding-top:76px;padding-bottom:76px}
 }
 
 /* La secuencia de tres pasos es una escena cerrada: sin scroll interno. */
@@ -212,12 +202,16 @@ main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 .trust:before{background:var(--coral);opacity:.22}
 .button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline-color:var(--contrast-focus)}
 
-/* El header sale como una sola pieza; no desvanece controles por separado. */
-.site-header{transform:translateY(0);transition:transform .42s cubic-bezier(.22,.8,.24,1),background-color .2s;will-change:transform}
-.site-header.is-scrolled{transform:translateY(-110%);background:#fff;pointer-events:none}
-.site-header.is-scrolled .site-nav,.site-header.is-scrolled .menu-button{opacity:1;visibility:visible}
-.site-header .site-nav,.site-header .menu-button{transition:none}
-@media(prefers-reduced-motion:reduce){.site-header{transition:none}.site-header.is-scrolled{transform:translateY(-110%)}}
+/* El header sale como una sola pieza al bajar y regresa completo al subir. */
+.site-header{transform:translateY(0);transition:transform .42s cubic-bezier(.22,.8,.24,1);will-change:transform}
+.site-header.is-hidden{transform:translateY(-110%)}
+@media(prefers-reduced-motion:reduce){.site-header{transition:none}}
+
+/* Sección activa: el menú indica dónde está la persona. */
+.site-nav>a:not(.button){text-decoration:underline 3px transparent;text-underline-offset:8px;transition:color .16s ease,text-decoration-color .16s ease}
+.site-nav>a[aria-current]{color:var(--contrast);text-decoration-color:var(--coral)}
+@media(max-width:900px){.site-nav>a[aria-current]{text-underline-offset:6px}}
+@media(prefers-reduced-motion:reduce){.site-nav>a:not(.button){transition:none}}
 
 /* Contraste azul restaurado. */
 .button{color:#fff;border-color:rgb(8 35 56/.5);box-shadow:0 7px 14px rgb(22 59 92/.22)}
@@ -227,22 +221,13 @@ main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 .trust h2{color:var(--coral)}
 .trust:before{background:var(--coral);opacity:.26}
 
-/* Acceso persistente: hover arriba lo muestra; al salir se retrae. */
-.header-reveal-zone{position:fixed;inset:0 0 auto 0;height:24px;z-index:49;display:flex;justify-content:center;align-items:flex-start}
-.header-reveal-hint{margin-top:4px;padding:4px 10px;border-radius:0 0 8px 8px;background:var(--contrast);color:#fff;font-size:11px;font-weight:700;line-height:1;letter-spacing:.01em;opacity:0;translate:0 -10px;transition:opacity .2s ease,translate .25s ease;box-shadow:0 4px 10px rgb(22 59 92/.2);white-space:nowrap}
-.is-header-hidden .header-reveal-hint{opacity:1;translate:0 0}
-.header-reveal-zone:hover .header-reveal-hint{opacity:0;translate:0 -10px}
-.header-reveal-zone:hover + .site-header.is-scrolled,.site-header.is-scrolled:hover,.site-header.is-scrolled:focus-within{transform:translateY(0);pointer-events:auto}
-@media(hover:none){.header-reveal-zone{display:none}}
-@media(prefers-reduced-motion:reduce){.header-reveal-hint{transition:none}}
-
 /* Conócenos: una sola superficie continua detrás del copy y del producto. */
 @keyframes tak-wristbands-float{0%,100%{rotate:-1.2deg}50%{rotate:1.2deg}}
 .about{overflow:hidden;background:linear-gradient(145deg,#fff 0 58%,var(--soft) 58% 100%)}
 .about-photo{position:relative;display:grid;place-items:center;isolation:isolate;background:transparent;overflow:visible}
 .about-photo:before{content:"";position:absolute;z-index:-1;width:min(68%,520px);aspect-ratio:1;right:-8%;top:-10%;border-radius:43% 57% 61% 39%/57% 39% 61% 43%;background:var(--contrast);opacity:.94;animation:tak-blob-breathe 13s ease-in-out infinite}
 .about-photo:after{content:"";position:absolute;z-index:-1;width:42%;aspect-ratio:1;left:-8%;bottom:-16%;border-radius:50%;background:var(--coral);opacity:.18}
-.about-photo img{width:min(72%,680px);max-width:680px;height:auto;object-fit:contain;object-position:center;scale:1;translate:0 calc(var(--scroll-progress,0) * -18px);filter:drop-shadow(0 28px 24px rgb(22 59 92/.24));animation:tak-wristbands-float 7s ease-in-out infinite;transition:translate .12s linear}
+.about-photo img{width:min(72%,680px);max-width:680px;height:auto;object-fit:contain;object-position:center;scale:1;translate:0 calc(var(--scroll-progress,0) * -18px);filter:drop-shadow(0 28px 24px rgb(22 59 92/.24));animation:tak-wristbands-float 7s ease-in-out infinite}
 @media(max-width:900px){.about-photo{height:42svh;min-height:300px}.about-photo img{width:min(68%,520px)}.about-photo:before{width:min(58%,390px)}}
 @media(max-width:600px){.about-photo{height:38svh;min-height:260px}.about-photo img{width:min(76%,420px)}.about-photo:before{right:-18%;width:72%}}
 @media(prefers-reduced-motion:reduce){.about-photo img,.about-photo:before{animation:none!important}}
@@ -264,12 +249,9 @@ main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 .contact-form .field input:hover,.contact-form .field select:hover,.contact-form .field textarea:hover{border-color:var(--contrast)}
 .contact-form .field input:focus,.contact-form .field select:focus,.contact-form .field textarea:focus{border-color:var(--contrast);box-shadow:0 7px 0 rgb(22 59 92/.2);transform:none;translate:0 -2px}
 .contact-form .consent input{accent-color:var(--contrast);width:22px;height:22px}
-.contact-form .button{min-height:58px;border-radius:18px;background:var(--contrast);box-shadow:0 8px 0 var(--contrast-dark),0 16px 24px rgb(22 59 92/.22);font-size:16px}
-.contact-form .button:hover{background:#204d74;translate:0 -2px;box-shadow:0 10px 0 var(--contrast-dark),0 20px 28px rgb(22 59 92/.28)}
-.contact-form .button:active{translate:0 6px;box-shadow:0 2px 0 var(--contrast-dark),0 7px 12px rgb(22 59 92/.2)}
 .contact-form .demo-note{color:var(--ink);opacity:.7}
 @media(max-width:900px){.contact{gap:20px;align-content:center}.contact-intro{min-height:0;padding-bottom:0}.contact-pattern{opacity:.32;right:-8%;left:auto;bottom:-80%}.contact-form{padding:24px;border-radius:30px 58px 30px 30px;box-shadow:0 10px 0 var(--contrast),0 22px 34px rgb(84 37 33/.2)}}
-@media(max-width:600px){.contact{padding-inline:22px}.contact h2{font-size:36px}.contact-form{grid-template-columns:1fr;gap:10px;padding:20px}.contact-form .field-wide{grid-column:auto}.contact-form .field textarea{min-height:72px}.contact-form .button{min-height:52px}}
+@media(max-width:600px){.contact{padding-inline:22px}.contact h2{font-size:36px}.contact-form{grid-template-columns:1fr;gap:10px;padding:20px}.contact-form .field-wide{grid-column:auto}.contact-form .field textarea{min-height:72px}}
 @media(prefers-reduced-motion:reduce){.contact-form{animation:none!important}}
 
 /* FAQ como set de piezas: fondo blanco, volumen y controles de juguete. */
@@ -298,7 +280,7 @@ main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 
 /* Footer compacto: comparte el último viewport únicamente con FAQ. */
 :root{--footer-height:156px}
-.faq{height:calc(100svh - var(--footer-height));min-height:0;scroll-snap-align:start}
+.faq{min-height:calc(100svh - var(--footer-height));scroll-snap-align:start}
 .footer{height:auto;min-height:156px;scroll-snap-align:none;padding:30px var(--gutter);display:grid;grid-template-columns:auto 1fr auto;gap:28px;align-items:center;background:var(--coral);color:var(--ink);border-top:3px solid var(--ink);box-shadow:inset 0 9px 0 rgb(168 58 52/.18)}
 .footer-brand{display:block;padding:12px 18px;border:2px solid var(--ink);border-radius:18px 30px 18px 18px;background:var(--coral);box-shadow:0 6px 0 var(--coral-dark);transition:translate .18s ease,box-shadow .18s ease}
 .footer-brand:hover{translate:0 -2px;box-shadow:0 8px 0 var(--coral-dark)}
@@ -366,3 +348,18 @@ main>section{height:100svh;scroll-snap-align:start;scroll-snap-stop:always}
 @media(max-width:600px){
   .trust>div,.trust>div:nth-of-type(3){padding:20px 22px}
 }
+
+/* Consentimiento con error visible junto a la casilla; campo trampa fuera de vista. */
+.contact-form .field-consent{gap:4px}
+.field-consent [aria-invalid="true"]{outline:2px solid #b42318;outline-offset:2px}
+.field-trap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* Documentos legales: misma pieza física que la consola de contacto. */
+.legal-dialog{width:min(560px,calc(100% - 44px));padding:clamp(28px,4vw,44px);border:2px solid var(--ink);border-radius:38px 76px 38px 38px;background:#fff9f8;color:var(--ink);box-shadow:0 10px 0 var(--contrast)}
+.legal-dialog::backdrop{background:rgb(38 27 26/.48)}
+.legal-dialog h2{font-size:clamp(34px,3.4vw,50px);line-height:1.13;letter-spacing:-.035em;margin:0 0 20px}
+.legal-dialog p:not(.section-label){font-size:17px;line-height:1.5;margin:0 0 28px}
+.legal-dialog form{margin:0}
+.legal-dialog[open]{animation:tak-dialog-in .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes tak-dialog-in{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:reduce){.legal-dialog[open]{animation:none}}

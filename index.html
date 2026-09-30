@@ -6,19 +6,18 @@
   <meta name="description" content="tak! — thanks are kind! Reconocimiento digital para las personas que hacen la diferencia." />
   <meta name="theme-color" content="#f57c73" />
   <title>tak! — thanks are kind!</title>
-  <link rel="stylesheet" href="styles.css?v=20260820-1240" />
-  <script src="script.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260930-1" />
+  <script src="script.js?v=20260930-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
-  <div class="header-reveal-zone" aria-hidden="true"><span class="header-reveal-hint">Acerca el mouse para ver el menú</span></div>
   <header class="site-header" id="inicio">
     <a class="brand" href="#inicio" aria-label="tak! — thanks are kind!, inicio">
       <img src="Assets%20/Assets%20Png%20/Logo/tak!logo.png" alt="tak!" />
     </a>
     <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr-only">Abrir menú</span></button>
     <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a href="#conocenos">Conócenos</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="#contacto">Contacto</a>
+      <a href="#conocenos">Conócenos</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="#preguntas">Preguntas</a>
       <a class="button button-small" href="#contacto">Hablemos</a>
     </nav>
   </header>
@@ -79,7 +78,8 @@
         <div class="field"><label for="type">Tipo de negocio</label><select id="type" name="type" required><option value="">Selecciona</option><option>Hotel</option><option>Restaurante</option></select><small class="error"></small></div>
         <div class="field"><label for="email">Correo</label><input id="email" name="email" type="email" autocomplete="email" required /><small class="error"></small></div>
         <div class="field field-wide"><label for="message">Mensaje</label><textarea id="message" name="message" rows="4" placeholder="Cuéntanos sobre tu negocio y cómo te gustaría usar tak!." required></textarea><small class="error"></small></div>
-        <label class="consent field-wide"><input type="checkbox" name="privacy" required /> <span>He leído el <a href="#privacidad">Aviso de Privacidad</a>.</span></label>
+        <div class="field field-wide field-consent"><label class="consent"><input type="checkbox" name="privacy" required /> <span>He leído el <a href="#privacidad" data-dialog="privacidad">Aviso de Privacidad</a>.</span></label><small class="error"></small></div>
+        <div class="field-trap" aria-hidden="true"><label for="website">Sitio web</label><input id="website" name="website" tabindex="-1" autocomplete="off" /></div>
         <button class="button field-wide" type="submit">Quiero conocer tak!</button>
         <p class="demo-note field-wide">Esta vista es una demostración. Tus datos no se enviarán todavía.</p>
         <p class="form-status field-wide" role="status" aria-live="polite"></p>
@@ -98,15 +98,27 @@
     </section>
   </main>
 
-  <footer class="footer" id="privacidad">
+  <footer class="footer">
     <a class="footer-brand" href="#inicio" aria-label="tak!, volver al inicio"><img class="footer-wordmark" src="Assets%20/Assets%20Png%20/Logo/tak!logo.png" alt="tak!" /></a>
     <p>thanks are kind!</p>
     <nav class="footer-links" aria-label="Enlaces del pie de página">
-      <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◎</span> Instagram</a>
       <a href="#contacto">Contacto</a>
-      <a id="terminos" href="#terminos">Términos de uso</a>
-      <a href="#privacidad">Privacidad</a>
+      <a href="#terminos" data-dialog="terminos">Términos de uso</a>
+      <a href="#privacidad" data-dialog="privacidad">Privacidad</a>
     </nav>
   </footer>
+
+  <dialog class="legal-dialog" id="privacidad" aria-labelledby="privacidad-title">
+    <p class="section-label">Aviso de Privacidad</p>
+    <h2 id="privacidad-title">Documento en preparación.</h2>
+    <p>Publicaremos el Aviso de Privacidad completo antes de recibir datos reales. Mientras tanto, el formulario de esta página es una demostración y no envía ni guarda tu información.</p>
+    <form method="dialog"><button class="button" type="submit">Entendido</button></form>
+  </dialog>
+  <dialog class="legal-dialog" id="terminos" aria-labelledby="terminos-title">
+    <p class="section-label">Términos de uso</p>
+    <h2 id="terminos-title">Documento en preparación.</h2>
+    <p>Los Términos de uso de tak! se publicarán junto con el lanzamiento comercial. Si tienes dudas, escríbenos desde la sección de contacto.</p>
+    <form method="dialog"><button class="button" type="submit">Entendido</button></form>
+  </dialog>
 </body>
 </html>
