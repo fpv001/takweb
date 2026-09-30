@@ -400,3 +400,36 @@ section{scroll-margin-top:0}
   .service-hotel{background-image:linear-gradient(rgb(25 13 11/.62),rgb(25 13 11/.62)),url('public/assets/services-hotel-team.jpg')}
   .service-restaurant{background-image:linear-gradient(rgb(25 13 11/.62),rgb(25 13 11/.62)),url('public/assets/services-hotel-restaurant.jpg')}
 }
+
+/* Móvil: ritmo compacto. Las escenas miden su contenido (sin pantallas vacías),
+   el espacio superior asume que el header se retira al bajar
+   y los pasos de "Cómo funciona" se recorren deslizando. */
+@media(max-width:900px){
+  .about,.journey,.services,.trust,.contact,.faq{min-height:0}
+  .hero{min-height:100svh}
+  .journey{padding-top:72px;padding-bottom:56px}
+  .service{padding-top:64px;padding-bottom:56px}
+  .trust{padding-top:64px;padding-bottom:64px}
+  .contact{padding-top:64px;padding-bottom:64px}
+  .faq{padding-top:64px;padding-bottom:56px}
+  .journey>h2{margin-bottom:28px}
+  .steps p,.service p:not(.section-label){font-size:16px}
+
+  .steps{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(260px,80%);gap:14px;margin-inline:calc(var(--gutter) * -1);padding:6px var(--gutter) 22px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-inline:var(--gutter);scrollbar-width:none;translate:none}
+  .steps::-webkit-scrollbar{display:none}
+  .steps:after{display:none}
+  .steps>li{scroll-snap-align:start;grid-template-columns:36px minmax(0,1fr);gap:8px;padding:20px 16px 18px;border:1.5px solid rgb(38 25 23/.16);border-radius:24px;background:#fff;box-shadow:0 5px 0 rgb(245 124 115/.4)}
+  .step-number{font-size:40px}
+  .steps h3{font-size:18px}
+  .step-visual{height:220px;margin-top:16px}
+  .product-mini img,.product-mini img[src*="three-stacked"]{height:auto;max-height:220px;max-width:100%}
+  .phone-demo{width:176px;height:280px;margin-top:16px;padding:30px 14px 14px;gap:10px;border-width:7px;border-radius:30px}
+  .phone-demo span{font-size:13px}
+  .phone-success strong{font-size:24px}
+  .phone-success .check{width:52px;height:52px;font-size:32px}
+  .steps small{margin-top:6px}
+}
+@media(max-width:600px){
+  .journey>h2{font-size:34px}
+  .service{min-height:min(88svh,520px)}
+}
