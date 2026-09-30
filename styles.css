@@ -372,3 +372,31 @@ section{scroll-margin-top:0}
 
 /* Hero: sin mancha decorativa detrás del copy. */
 .hero-copy:before{display:none}
+
+/* Cómo funciona: selector de audiencia (clientes / hoteles).
+   Rol tab: pieza física como el resto de controles; seleccionado = azul de contraste. */
+.audience-switch{position:relative;z-index:4;display:inline-flex;gap:4px;margin:0 0 28px;padding:4px;border:2px solid var(--ink);border-radius:16px;background:#fff;box-shadow:0 5px 0 var(--coral)}
+.audience-tab{min-height:44px;padding:0 22px;border:0;border-radius:12px;background:transparent;color:var(--ink);font-size:15px;font-weight:800;cursor:pointer;transition:background-color .2s ease,color .2s ease,box-shadow .2s ease}
+.audience-tab:hover{background:var(--soft)}
+.audience-tab[aria-selected="true"]{background:var(--contrast);color:#fff;box-shadow:0 3px 0 var(--contrast-dark)}
+.audience-tab:focus-visible{outline:3px solid var(--contrast-focus);outline-offset:3px}
+.steps[hidden]{display:none}
+.steps.is-entering>li{animation:tak-steps-in .5s cubic-bezier(.2,.8,.2,1) both}
+.steps.is-entering>li:nth-child(2){animation-delay:.06s}
+.steps.is-entering>li:nth-child(3){animation-delay:.12s}
+@keyframes tak-steps-in{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+.product-mini img[src*="three-stacked"]{height:260px}
+@media(max-width:600px){.audience-switch{display:flex;width:100%}.audience-tab{flex:1;padding-inline:12px}}
+@media(prefers-reduced-motion:reduce){.audience-tab{transition:none}.steps.is-entering>li{animation:none}}
+
+/* Servicios: una fotografía por área del hotel, con velo para mantener el texto legible. */
+.services,.service-restaurant{background-image:none}
+.services{background-color:var(--dark)}
+.service{background-size:cover;background-repeat:no-repeat}
+.service-hotel{background-image:linear-gradient(90deg,rgb(25 13 11/.8) 0%,rgb(25 13 11/.5) 55%,rgb(25 13 11/.3) 100%),url('public/assets/services-hotel-team.jpg');background-position:center 20%}
+.service-restaurant{background-image:linear-gradient(90deg,rgb(25 13 11/.8) 0%,rgb(25 13 11/.5) 55%,rgb(25 13 11/.3) 100%),url('public/assets/services-hotel-restaurant.jpg');background-position:center 25%}
+@media(max-width:900px){
+  .service-hotel,.service-restaurant{background-size:cover}
+  .service-hotel{background-image:linear-gradient(rgb(25 13 11/.62),rgb(25 13 11/.62)),url('public/assets/services-hotel-team.jpg')}
+  .service-restaurant{background-image:linear-gradient(rgb(25 13 11/.62),rgb(25 13 11/.62)),url('public/assets/services-hotel-restaurant.jpg')}
+}

@@ -6,8 +6,8 @@
   <meta name="description" content="tak! — thanks are kind! Reconocimiento digital para las personas que hacen la diferencia." />
   <meta name="theme-color" content="#f57c73" />
   <title>tak! — thanks are kind!</title>
-  <link rel="stylesheet" href="styles.css?v=20260930-4" />
-  <script src="script.js?v=20260930-4" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260930-6" />
+  <script src="script.js?v=20260930-6" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -40,8 +40,7 @@
       <div class="about-copy">
         <p class="section-label">Conócenos</p>
         <h2>Una forma más cálida y directa de reconocer a quienes hacen posible una gran experiencia.</h2>
-        <p>tak! devuelve el agradecimiento a lo más simple: un gesto humano entre personas.</p>
-        <p>Huéspedes y comensales reconocen el trabajo que los hace sentir bien. Sin efectivo. Sin app.</p>
+        <p>Los clientes reconocen el trabajo que los hace sentir bien, y tak! lo hace más transparente y simple: sin efectivo y sin app.</p>
       </div>
       <figure class="about-photo">
         <img src="public/assets/three-stacked-wristbands.png" alt="Tres wristbands NFC coral de tak! apiladas" />
@@ -50,17 +49,26 @@
 
     <section class="journey section" id="como-funciona" aria-labelledby="journey-title">
       <p class="section-label">Cómo funciona</p>
+      <div class="audience-switch" role="tablist" aria-label="Cómo funciona para">
+        <button class="audience-tab" type="button" role="tab" id="tab-clientes" aria-selected="true" aria-controls="panel-clientes" data-title="Acerca. Elige. Agradece.">Para clientes</button>
+        <button class="audience-tab" type="button" role="tab" id="tab-hoteles" aria-selected="false" aria-controls="panel-hoteles" tabindex="-1" data-title="Asigna. Reconoce. Mejora.">Para hoteles</button>
+      </div>
       <h2 id="journey-title">Acerca. Elige. Agradece.</h2>
-      <ol class="steps">
-        <li><span class="step-number">1</span><div><h3>Acerca tu teléfono</h3><p>Acércalo a la wristband tak! para abrir la experiencia.</p><div class="step-visual product-mini"><img src="public/assets/hero-phone-wristband.png" alt="Teléfono junto a una wristband NFC" /></div></div></li>
-        <li><span class="step-number">2</span><div><h3>Elige a quién agradecer</h3><p>Identifica a la persona y elige un monto.</p><div class="phone-demo" aria-label="Vista ilustrativa de selección"><div class="phone-top"></div><strong>¿A quién quieres agradecer?</strong><span>María · Camarista</span><span>Carlos · Recepción</span><span>Ana · Atención</span><div class="amounts"><b>$10</b><b>$20</b><b>$30</b></div></div><small>Vista ilustrativa</small></div></li>
+      <ol class="steps" id="panel-clientes" role="tabpanel" aria-labelledby="tab-clientes">
+        <li><span class="step-number">1</span><div><h3>Acerca tu teléfono</h3><p>Acércalo a la wristband tak!</p><div class="step-visual product-mini"><img src="public/assets/hero-phone-wristband.png" alt="Teléfono junto a una wristband NFC" /></div></div></li>
+        <li><span class="step-number">2</span><div><h3>Elige tu reconocimiento</h3><p>Deja un comentario, una propina o ambos.</p><div class="phone-demo" aria-label="Vista ilustrativa de opciones de reconocimiento"><div class="phone-top"></div><strong>Elige tu reconocimiento</strong><span>Carlos · Recepción</span><span>Dejar un comentario</span><span>Dar una propina</span><div class="amounts"><b>$10</b><b>$20</b><b>$30</b></div></div><small>Vista ilustrativa</small></div></li>
         <li><span class="step-number">3</span><div><h3>Confirma tu agradecimiento</h3><p>Revisa los detalles antes de confirmar.</p><div class="phone-demo phone-success" aria-label="Vista ilustrativa de confirmación"><div class="check">✓</div><strong>¡Gracias!</strong><span>Tu agradecimiento fue enviado.</span><img class="product-wordmark" src="Assets%20/Assets%20Png%20/Logo/tak!logo.png" alt="tak!" /></div></div></li>
+      </ol>
+      <ol class="steps" id="panel-hoteles" role="tabpanel" aria-labelledby="tab-hoteles" hidden>
+        <li><span class="step-number">1</span><div><h3>Asigna las wristbands</h3><p>Cada colaborador porta su wristband tak!, vinculada a su nombre y área.</p><div class="step-visual product-mini"><img src="public/assets/three-stacked-wristbands.png" alt="Tres wristbands tak! listas para asignar al equipo" /></div></div></li>
+        <li><span class="step-number">2</span><div><h3>Tu equipo recibe el reconocimiento</h3><p>Comentarios y propinas quedan registrados a nombre de quien los recibió. Sin efectivo.</p><div class="phone-demo" aria-label="Vista ilustrativa de un reconocimiento recibido"><div class="phone-top"></div><strong>¡Nuevo reconocimiento!</strong><span>Carlos · Recepción</span><span>“Gracias por hacer tan fácil nuestra llegada.”</span><span>Incluye propina</span></div><small>Vista ilustrativa</small></div></li>
+        <li><span class="step-number">3</span><div><h3>Mejora con lo que dicen tus clientes</h3><p>Consulta cada reconocimiento por colaborador y área.</p><div class="phone-demo" aria-label="Vista ilustrativa de reconocimientos por área"><div class="phone-top"></div><strong>Reconocimientos por área</strong><span>Recepción · Carlos</span><span>Housekeeping · María</span><span>Concierge · Ana</span></div><small>Vista ilustrativa</small></div></li>
       </ol>
     </section>
 
-    <section class="services" id="servicios" aria-label="Servicios para hoteles y restaurantes">
-      <article class="service service-hotel"><div class="service-copy"><p class="section-label">Hotel</p><h2>Más reconocimiento para tu equipo, menos fricción para tus huéspedes.</h2><h3>Para tu equipo</h3><p>Reconocimiento justo y directo que motiva y fortalece el orgullo de pertenecer.</p><h3>Para tus huéspedes</h3><p>Agradecer es fácil, discreto y seguro, incluso desde el extranjero.</p></div></article>
-      <article class="service service-restaurant"><div class="service-copy"><p class="section-label">Restaurante</p><h2>El agradecimiento no termina cuando llega la cuenta.</h2><h3>Para tu equipo</h3><p>Reconocimiento visible que impulsa el servicio y mejora el ambiente de trabajo.</p><h3>Para tus comensales</h3><p>Agradecer es parte natural de la experiencia, sin fricciones ni efectivo.</p></div></article>
+    <section class="services" id="servicios" aria-label="Servicios para hoteles">
+      <article class="service service-hotel"><div class="service-copy"><h2>Más reconocimiento para tu equipo, menos fricción para tus clientes.</h2><h3>Para tu equipo</h3><p>Reconocimiento justo y directo que motiva y fortalece el orgullo de pertenecer.</p><h3>Para tus clientes</h3><p>Agradecer es fácil, discreto y seguro, incluso desde el extranjero.</p></div></article>
+      <article class="service service-restaurant"><div class="service-copy"><h2>En un all inclusive, cada momento merece un gracias.</h2><h3>Para tu equipo</h3><p>Del restaurante al bar y la alberca, tak! reconoce a quienes hacen la estancia inolvidable.</p><h3>Para tus clientes</h3><p>Agradecer es parte natural de la experiencia, sin fricciones ni efectivo.</p></div></article>
     </section>
 
     <section class="trust" id="confianza">
@@ -71,13 +79,12 @@
     </section>
 
     <section class="contact section" id="contacto">
-      <div class="contact-intro"><p class="section-label">Contacto</p><h2>¿Listo para llevar<br />tak! a tu negocio?</h2><div class="contact-pattern" aria-hidden="true"></div></div>
+      <div class="contact-intro"><p class="section-label">Contacto</p><h2>¿Listo para llevar<br />tak! a tu hotel?</h2><div class="contact-pattern" aria-hidden="true"></div></div>
       <form class="contact-form" novalidate>
         <div class="field"><label for="name">Nombre</label><input id="name" name="name" autocomplete="name" required /><small class="error"></small></div>
-        <div class="field"><label for="business">Negocio</label><input id="business" name="business" autocomplete="organization" required /><small class="error"></small></div>
-        <div class="field"><label for="type">Tipo de negocio</label><select id="type" name="type" required><option value="">Selecciona</option><option>Hotel</option><option>Restaurante</option></select><small class="error"></small></div>
-        <div class="field"><label for="email">Correo</label><input id="email" name="email" type="email" autocomplete="email" required /><small class="error"></small></div>
-        <div class="field field-wide"><label for="message">Mensaje</label><textarea id="message" name="message" rows="4" placeholder="Cuéntanos sobre tu negocio y cómo te gustaría usar tak!." required></textarea><small class="error"></small></div>
+        <div class="field"><label for="business">Hotel</label><input id="business" name="business" autocomplete="organization" required /><small class="error"></small></div>
+        <div class="field field-wide"><label for="email">Correo</label><input id="email" name="email" type="email" autocomplete="email" required /><small class="error"></small></div>
+        <div class="field field-wide"><label for="message">Mensaje</label><textarea id="message" name="message" rows="4" placeholder="Cuéntanos sobre tu hotel y cómo te gustaría usar tak!." required></textarea><small class="error"></small></div>
         <div class="field field-wide field-consent"><label class="consent"><input type="checkbox" name="privacy" required /> <span>He leído el <a href="#privacidad" data-dialog="privacidad">Aviso de Privacidad</a>.</span></label><small class="error"></small></div>
         <div class="field-trap" aria-hidden="true"><label for="website">Sitio web</label><input id="website" name="website" tabindex="-1" autocomplete="off" /></div>
         <button class="button field-wide" type="submit">Quiero conocer tak!</button>
@@ -89,11 +96,11 @@
     <section class="faq section" id="preguntas">
       <p class="section-label">Preguntas frecuentes</p>
       <div class="faq-list">
-        <details><summary>¿Cómo funciona tak! para mis huéspedes o comensales?</summary><p>Acercan su teléfono a la wristband NFC, identifican a la persona y siguen una experiencia clara desde el navegador.</p></details>
+        <details><summary>¿Cómo funciona tak! para mis clientes?</summary><p>Acercan su teléfono a la wristband NFC, identifican a la persona y siguen una experiencia clara desde el navegador.</p></details>
         <details><summary>¿Es necesario descargar alguna app?</summary><p>No. La experiencia está pensada para abrirse desde el navegador del teléfono.</p></details>
         <details><summary>¿Cómo sabe mi equipo que fue reconocido?</summary><p>La experiencia conserva una referencia clara de la persona reconocida y del agradecimiento realizado.</p></details>
         <details><summary>¿Qué información se muestra antes de confirmar?</summary><p>La persona destinataria y el monto elegido se revisan antes de confirmar.</p></details>
-        <details><summary>¿Cómo empiezo a usar tak! en mi negocio?</summary><p>Cuéntanos sobre tu hotel o restaurante y nuestro equipo se pondrá en contacto contigo.</p></details>
+        <details><summary>¿Cómo empiezo a usar tak! en mi hotel?</summary><p>Cuéntanos sobre tu hotel y nuestro equipo se pondrá en contacto contigo.</p></details>
       </div>
     </section>
   </main>

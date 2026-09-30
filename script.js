@@ -172,6 +172,36 @@ document.addEventListener('click', (event) => {
   history.pushState(null, '', hash);
 });
 
+// Cómo funciona: pestañas "Para clientes / Para hoteles" con teclado (flechas, Inicio, Fin).
+const audienceTabs = [...document.querySelectorAll('.audience-tab')];
+const journeyTitle = document.getElementById('journey-title');
+const selectAudience = (tab, focus = false) => {
+  audienceTabs.forEach((item) => {
+    const selected = item === tab;
+    const panel = document.getElementById(item.getAttribute('aria-controls'));
+    item.setAttribute('aria-selected', String(selected));
+    item.tabIndex = selected ? 0 : -1;
+    panel.hidden = !selected;
+    if (selected) {
+      panel.classList.remove('is-entering');
+      void panel.offsetWidth;
+      panel.classList.add('is-entering');
+    }
+  });
+  journeyTitle.textContent = tab.dataset.title;
+  if (focus) tab.focus();
+};
+audienceTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectAudience(tab));
+  tab.addEventListener('keydown', (event) => {
+    const last = audienceTabs.length - 1;
+    const next = { ArrowRight: index === last ? 0 : index + 1, ArrowLeft: index === 0 ? last : index - 1, Home: 0, End: last }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    selectAudience(audienceTabs[next], true);
+  });
+});
+
 // Menú móvil.
 menuButton.addEventListener('click', () => setMenu(!menuOpen()));
 
