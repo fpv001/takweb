@@ -369,3 +369,6 @@ section{scroll-margin-top:0}
 @media(min-width:901px){
   .hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding-top:90px;padding-bottom:40px}
 }
+
+/* Hero: sin mancha decorativa detrás del copy. */
+.hero-copy:before{display:none}
