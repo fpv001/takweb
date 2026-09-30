@@ -364,3 +364,8 @@ section{scroll-margin-top:0}
 .legal-dialog[open]{animation:tak-dialog-in .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes tak-dialog-in{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
 @media(prefers-reduced-motion:reduce){.legal-dialog[open]{animation:none}}
+
+/* Hero en escritorio: el copy se centra ópticamente en el espacio bajo el header. */
+@media(min-width:901px){
+  .hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding-top:90px;padding-bottom:40px}
+}
