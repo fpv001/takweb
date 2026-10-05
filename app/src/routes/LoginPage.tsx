@@ -31,8 +31,6 @@ export function LoginPage() {
     <div className="tk-auth">
       {/* Panel de marca */}
       <div className="tk-auth__art">
-        <div className="tk-auth__pattern" aria-hidden="true" />
-        <div className="tk-auth__rings" aria-hidden="true" />
         <img className="tk-auth__logo" src={logoUrl} alt="tak!" />
         <div>
           <p className="tk-auth__claim">Cada gracias, visible para tu equipo.</p>

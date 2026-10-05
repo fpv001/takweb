@@ -337,26 +337,21 @@ export function TipPage({ linkId }: Props) {
   }
 
   const header = colaborador && (
-    <header className="tk-ghead">
-      <div className="tk-ghead__pattern" aria-hidden="true" />
-      <img className="tk-ghead__logo" src={logoUrl} alt="tak!" />
-      <div className="tk-ghead__avatar">
-        <Avatar name={colaborador.nombre} src={colaborador.foto_url} size={104} />
-      </div>
-      <h1 className="tk-ghead__name">{colaborador.nombre}</h1>
-      {colaborador.puesto && <p className="tk-ghead__role">{colaborador.puesto}</p>}
-      {hotel && <span className="tk-ghead__hotel"><Icon name="building" />{hotel.nombre}</span>}
-    </header>
+    <>
+      <div className="tk-gbar"><img src={logoUrl} alt="tak!" /></div>
+      <header className="tk-ghead">
+        <Avatar name={colaborador.nombre} src={colaborador.foto_url} size={88} />
+        <h1 className="tk-ghead__name">{colaborador.nombre}</h1>
+        <p className="tk-ghead__meta"><span>{[colaborador.puesto, hotel?.nombre].filter(Boolean).join(' · ')}</span></p>
+      </header>
+    </>
   )
 
   const footer = <p className="tk-gfoot">{t.footer} <strong>tak!</strong></p>
 
   if (notFound) return (
     <div className="tk-guest">
-      <header className="tk-ghead" style={{ paddingBottom: 48 }}>
-        <div className="tk-ghead__pattern" aria-hidden="true" />
-        <img className="tk-ghead__logo" src={logoUrl} alt="tak!" style={{ marginBottom: 0 }} />
-      </header>
+      <div className="tk-gbar"><img src={logoUrl} alt="tak!" /></div>
       <main className="tk-gcard">
         <div className="tk-success">
           <span className="tk-empty__mark"><Icon name="error" /></span>
@@ -370,9 +365,9 @@ export function TipPage({ linkId }: Props) {
 
   if (!colaborador) return (
     <div className="tk-guest" aria-busy="true">
+      <div className="tk-gbar"><img src={logoUrl} alt="tak!" /></div>
       <header className="tk-ghead" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        <img className="tk-ghead__logo" src={logoUrl} alt="tak!" style={{ marginBottom: 12 }} />
-        <Skeleton h={104} w={104} r={999} />
+        <Skeleton h={88} w={88} r={999} />
         <Skeleton h={28} w={180} />
       </header>
       <main className="tk-gcard" style={{ gap: 12 }}>
@@ -413,7 +408,7 @@ export function TipPage({ linkId }: Props) {
   )
 
   const option = (onClick: () => void, icon: IconName, title: string, desc: string, featured: boolean) => (
-    <button type="button" onClick={onClick} className={`tk-option${featured ? ' tk-option--featured' : ''}`}>
+    <button type="button" onClick={onClick} className="tk-option" data-featured={featured || undefined}>
       <span className="tk-option__icon"><Icon name={icon} /></span>
       <span>
         <span className="tk-option__title">{title}</span>
