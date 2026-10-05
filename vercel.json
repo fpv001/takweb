@@ -1,7 +1,26 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": null,
+  "installCommand": "npm --prefix app ci",
+  "buildCommand": "npm --prefix app run build",
   "outputDirectory": ".",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/admin/:path*",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/dashboard/:path*",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/tip/:path*",
+      "destination": "/admin/index.html"
+    }
+  ]
 }

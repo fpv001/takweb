@@ -1,0 +1,19 @@
+{
+  "name": "tak!",
+  "short_name": "tak!",
+  "description": "Plataforma interna de gestión de propinas digitales",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#fff9f8",
+  "theme_color": "#F57C73",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/admin/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

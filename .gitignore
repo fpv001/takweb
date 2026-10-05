@@ -1,0 +1,46 @@
+# Documentación y notas
+README*
+*.md
+docs/
+notes/
+vault/
+.obsidian/
+Project/
+Team/
+Workflows/
+
+# Variables y secretos
+.env
+.env.*
+!.env.example
+
+# Sistema y editores
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs, cachés y temporales
+*.log
+tmp/
+temp/
+.cache/
+coverage/
+
+# Dependencias y resultados generados
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.svelte-kit/
+
+# Fuentes y entregables no usados por la aplicación
+Assets /Assets JPG/
+Assets /Assets Png /Mockups /
+*.pdf
+*.docx
+tools/
+
+# Build del panel (lo genera Vercel con npm --prefix app run build)
+/admin/
