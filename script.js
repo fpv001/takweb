@@ -123,6 +123,37 @@ if (anime && !reducedMotion.matches && 'IntersectionObserver' in window) {
   });
 }
 
+// Preguntas: abrir y cerrar con altura animada; sin anime.js, el details nativo.
+document.querySelectorAll('.faq-list details').forEach((details) => {
+  const summary = details.querySelector('summary');
+  if (details.open) details.classList.add('is-open');
+  summary.addEventListener('click', (event) => {
+    if (!window.anime || reducedMotion.matches) {
+      details.classList.toggle('is-open', !details.open);
+      return;
+    }
+    event.preventDefault();
+    const answer = details.querySelector('p');
+    const start = details.offsetHeight;
+    window.anime.remove([details, answer]);
+    const opening = !details.classList.contains('is-open');
+    details.classList.toggle('is-open', opening);
+    details.open = true;
+    const end = opening ? details.offsetHeight : summary.offsetHeight + details.offsetHeight - details.clientHeight;
+    window.anime({
+      targets: details,
+      height: [start, end],
+      duration: opening ? 520 : 420,
+      easing: 'easeOutCubic',
+      complete: () => {
+        details.style.height = '';
+        if (!opening) details.open = false;
+      },
+    });
+    window.anime({ targets: answer, opacity: opening ? [0, 1] : 0, translateY: opening ? [-8, 0] : -8, duration: opening ? 520 : 260, easing: 'easeOutCubic' });
+  });
+});
+
 // Scroll suavizado con inercia para rueda y trackpad en escritorio.
 // En táctil y con reduced motion se conserva el scroll nativo.
 const smoothScroll = (() => {

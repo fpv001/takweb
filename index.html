@@ -6,9 +6,10 @@
   <meta name="description" content="tak! — thanks are kind! Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app." />
   <meta name="theme-color" content="#fff8f6" />
   <title>tak! — thanks are kind!</title>
-  <link rel="stylesheet" href="styles.css?v=20261029-6" />
+  <link rel="stylesheet" href="styles.css?v=20261029-8" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
-  <script src="script.js?v=20261029-6" defer></script>
+  <script src="demo.js?v=20261029-8" defer></script>
+  <script src="script.js?v=20261029-8" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -18,7 +19,7 @@
     </a>
     <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr-only">Abrir menú</span></button>
     <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a href="#como-funciona">Cómo funciona</a><a href="#negocios">Negocios</a><a href="#preguntas">Preguntas</a>
+      <a href="#como-funciona">Cómo funciona</a><a href="#negocios">Negocios</a><a href="#demo">Demo</a><a href="#preguntas">Preguntas</a>
       <a class="button button-small" href="#contacto">Hablemos</a>
     </nav>
   </header>
@@ -118,6 +119,30 @@
           <h3>Todo registrado</h3><p>Cada reseña y cada propina quedan con su persona, fecha y contexto.</p>
         </li>
       </ul>
+    </section>
+
+    <section class="section" id="demo" aria-labelledby="demo-title">
+      <div class="demo-head">
+        <div>
+          <h2 id="demo-title">Así se ve <em>tu panel.</em></h2>
+          <p class="lead">Explora el dashboard de tak! con datos de ejemplo. Simula una reseña y mira cómo llega en vivo.</p>
+        </div>
+        <button class="button" type="button" data-demo-simulate>Simular reseña</button>
+      </div>
+      <div class="dash" data-demo>
+        <aside class="dash-side">
+          <div class="dash-brand"><img src="public/assets/tak-logo.png" alt="tak!" /><span>Hotel Casa Coral</span></div>
+          <div class="dash-nav" role="tablist" aria-label="Secciones del panel">
+            <button type="button" role="tab" aria-selected="true" data-tab="resumen"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Resumen</button>
+            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="resenas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>Reseñas</button>
+            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="equipo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.8 3.3-6 6.5-6s5.7 2.2 6.5 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .6 3.2 2.6 3.5 6"/></svg>Mi equipo</button>
+            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="propinas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M7 15h3"/></svg>Propinas</button>
+          </div>
+        </aside>
+        <div class="dash-main" role="tabpanel" aria-live="polite" data-demo-panel></div>
+        <div class="dash-toast" aria-hidden="true" data-demo-toast></div>
+      </div>
+      <p class="demo-disclaimer">Demo con datos ficticios. Tu panel real muestra la información de tu negocio.</p>
     </section>
 
     <section class="section" id="preguntas" aria-labelledby="faq-title">
