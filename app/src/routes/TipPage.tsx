@@ -52,7 +52,7 @@ const translations = {
     cardCvc: 'CVC',
     starLabel: (n: number) => `${n} de 5 estrellas`,
     hello: '¿Cómo te atendió?',
-    tag: 'Gracias que cuenta',
+    tag: 'Agradecimientos que cuentan',
   },
   en: {
     labelAmount: 'How much would you like to leave?',
