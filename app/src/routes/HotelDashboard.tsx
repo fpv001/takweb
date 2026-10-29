@@ -12,9 +12,10 @@ import { Toast } from '@/components/UI'
 import {
   AppLayout, SubpageLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
-  Avatar, Alert, EmptyState, LiveIndicator, BarChart, RatingDistribution, Stars, FullscreenLoader,
+  Avatar, Alert, EmptyState, LiveIndicator, Stars, FullscreenLoader,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
+import { TrendBars, RatingRing, RatingBars, KpiSpark } from '@/components/Stats'
 
 type Hotel = { id: string; nombre: string; stripe_api_key: string | null; google_place_id: string | null }
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
@@ -165,14 +166,14 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
             <>
               <PageHeader title={hotel?.nombre ?? ''} subtitle="Así va tu hotel hoy" action={<LiveIndicator label="Propinas en vivo" />} />
               <KpiRow>
-                <KpiCard featured label="Este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} propinas`} icon="tip" />
+                <KpiCard featured label="Calificación" value={calificacion > 0 ? calificacion.toFixed(1) : '—'} sub={`${resenasConEstrellas.length} reseñas`} icon="star" />
+                <KpiCard label="Este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} propinas`} icon="tip"><KpiSpark values={last7.map(d => d.total)} /></KpiCard>
                 <KpiCard label="Total histórico" value={formatMXN(totalPropinas)} sub={`${propinas.length} propinas`} icon="trend" />
-                <KpiCard label="Calificación" value={calificacion > 0 ? calificacion.toFixed(1) : '—'} sub={`${resenasConEstrellas.length} reseñas`} icon="star" />
                 <KpiCard label="Equipo activo" value={String(colaboradores.filter(c => c.activo).length)} sub="colaboradores" icon="users" />
               </KpiRow>
               <div className="tk-grid-main">
                 <Card title="Propinas de los últimos 7 días" meta="Monto recibido por día">
-                  <BarChart data={last7} label="Propinas de los últimos 7 días" format={n => formatMXN(n).replace('MX$', '$')} />
+                  <TrendBars data={last7} label="Propinas de los últimos 7 días" format={n => formatMXN(n).replace('MX$', '$')} />
                 </Card>
                 <Card title="Top colaboradores" meta="Por monto recibido">
                   {topCols.length === 0 ? (
@@ -305,12 +306,11 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                 <KpiCard label="Con comentario" value={String(resenas.filter(r => r.comentario?.trim()).length)} icon="message" />
               </KpiRow>
               {resenasConEstrellas.length > 0 && (
-                <Card title="Distribución de calificaciones">
-                  <RatingDistribution rows={[5, 4, 3, 2, 1].map(star => {
-                    const count = resenas.filter(r => r.estrellas === star).length
-                    const pct = resenasConEstrellas.length ? count / resenasConEstrellas.length : 0
-                    return { star, count, pct }
-                  })} />
+                <Card title="Distribución de calificaciones" meta="Cuántas reseñas recibe cada calificación">
+                  <div className="tk-scorebox">
+                    <RatingRing value={calificacion} count={resenasConEstrellas.length} />
+                    <RatingBars rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
+                  </div>
                 </Card>
               )}
               <div style={{ marginTop: 32 }}>

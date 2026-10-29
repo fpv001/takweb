@@ -8,9 +8,10 @@ import { Toast } from '@/components/UI'
 import { ColaboradorAvatar } from '@/components/ExpedienteModal'
 import {
   AppLayout, SubpageLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
-  Table, Tr, Td, StatusBadge, Btn, EmptyState, BarChart, RatingDistribution, Stars, FullscreenLoader, LiveIndicator,
+  Table, Tr, Td, StatusBadge, Btn, EmptyState, Stars, FullscreenLoader, LiveIndicator,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
+import { TrendBars, RatingRing, RatingBars, KpiSpark } from '@/components/Stats'
 
 type Colaborador = { id: string; nombre: string; puesto: string | null; foto_url: string | null; hotel_id: string; telefono: string | null; fecha_ingreso: string | null }
 type Hotel = { nombre: string }
@@ -138,13 +139,13 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
             <div style={{ marginLeft: 'auto' }}><LiveIndicator /></div>
           </div>
           <KpiRow>
-            <KpiCard featured label="Este mes" value={formatMXN(totalMes)} sub={`${propinasEsteMes.length} propinas`} icon="tip" />
+            <KpiCard featured label="Este mes" value={formatMXN(totalMes)} sub={`${propinasEsteMes.length} propinas`} icon="tip"><KpiSpark values={last7.map(d => d.total)} /></KpiCard>
             <KpiCard label="Total recibido" value={formatMXN(totalRecibido)} sub={`${propinas.length} en total`} icon="trend" />
             <KpiCard label="Promedio" value={propinas.length ? formatMXN(promedioTip) : '—'} sub="por propina" icon="chart" />
             <KpiCard label="Calificación" value={calificacion > 0 ? calificacion.toFixed(1) : '—'} sub="de 5 estrellas" icon="star" />
           </KpiRow>
           <Card title="Tus propinas de los últimos 7 días" meta="Monto recibido por día">
-            <BarChart data={last7} label="Propinas de los últimos 7 días" format={n => formatMXN(n).replace('MX$', '$')} />
+            <TrendBars data={last7} label="Propinas de los últimos 7 días" format={n => formatMXN(n).replace('MX$', '$')} />
           </Card>
           <div style={{ marginTop: 32 }}>
             <SectionHeader title="Propinas recientes" action={propinas.length > 5 ? <Btn small variant="text" icon="history" onClick={() => setTab('historial')}>Ver historial</Btn> : undefined} />
@@ -192,16 +193,8 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
           {calificacion > 0 && (
             <Card>
               <div className="tk-scorebox">
-                <div className="tk-scorebox__big">
-                  <p className="tk-scorebox__num">{calificacion.toFixed(1)}</p>
-                  <Stars value={Math.round(calificacion)} />
-                  <p className="tk-muted" style={{ font: 'var(--t-small)', marginTop: 4 }}>{conEstrellas} reseñas</p>
-                </div>
-                <RatingDistribution rows={[5, 4, 3, 2, 1].map(star => {
-                  const count = resenas.filter(r => r.estrellas === star).length
-                  const pct = resenas.filter(r => r.estrellas).length ? count / resenas.filter(r => r.estrellas).length : 0
-                  return { star, count, pct }
-                })} />
+                <RatingRing value={calificacion} count={conEstrellas} />
+                <RatingBars rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
               </div>
             </Card>
           )}

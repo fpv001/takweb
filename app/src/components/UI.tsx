@@ -166,13 +166,15 @@ export function SubpageLayout({ onBack, title, meta, avatar, tabs, activeTab, on
 
 export function Tabs({ items, active, onChange }: { items: NavItem[]; active: string; onChange: (id: string) => void }) {
   return (
-    <div className="tk-tabs" role="tablist">
-      {items.map(item => (
-        <button key={item.id} type="button" role="tab" className="tk-tab" aria-selected={active === item.id} onClick={() => onChange(item.id)}>
-          <Icon name={item.icon} />
-          {item.label}
-        </button>
-      ))}
+    <div className="tk-tabs">
+      <div className="tk-tabs__track" role="tablist">
+        {items.map(item => (
+          <button key={item.id} type="button" role="tab" className="tk-tab" aria-selected={active === item.id} onClick={() => onChange(item.id)}>
+            <Icon name={item.icon} />
+            {item.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -240,8 +242,8 @@ export function KpiRow({ children }: { children: ReactNode }) {
   return <div className="tk-kpis">{children}</div>
 }
 
-export function KpiCard({ label, value, sub, icon, featured }: {
-  label: string; value: string; sub?: string; color?: string; icon?: IconName; featured?: boolean
+export function KpiCard({ label, value, sub, icon, featured, children }: {
+  label: string; value: string; sub?: string; color?: string; icon?: IconName; featured?: boolean; children?: ReactNode
 }) {
   return (
     <div className={cx('tk-kpi', featured && 'tk-kpi--featured')}>
@@ -251,6 +253,7 @@ export function KpiCard({ label, value, sub, icon, featured }: {
       </div>
       <p className="tk-kpi__value">{value}</p>
       {sub && <p className="tk-kpi__sub">{sub}</p>}
+      {children}
     </div>
   )
 }
@@ -487,41 +490,6 @@ export function Stars({ value, max = 5 }: { value: number; max?: number }) {
     <span className="tk-stars" role="img" aria-label={`${value} de ${max} estrellas`}>
       {Array.from({ length: max }, (_, i) => <Icon key={i} name="star" className={i < value ? 'is-on' : 'is-off'} />)}
     </span>
-  )
-}
-
-export function BarChart({ data, format, label }: { data: { label: string; total: number }[]; format: (n: number) => string; label: string }) {
-  const max = Math.max(...data.map(d => d.total), 1)
-  const summary = data.map(d => `${d.label}: ${format(d.total)}`).join(', ')
-  return (
-    <div className="tk-bars" role="img" aria-label={`${label}. ${summary}`}>
-      {data.map(({ label: day, total }, i) => {
-        const today = i === data.length - 1
-        return (
-          <div key={`${day}-${i}`} className="tk-bars__col">
-            <span className="tk-bars__val">{total > 0 ? format(total) : ''}</span>
-            <div className={cx('tk-bars__bar', total === 0 && 'is-zero', today && total > 0 && 'is-today')} style={{ height: total ? `${Math.max(6, (total / max) * 120)}px` : '6px' }} />
-            <span className={cx('tk-bars__day', today && 'is-today')}>{today ? 'Hoy' : day.replace('.', '')}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-export function RatingDistribution({ rows }: { rows: { star: number; count: number; pct: number }[] }) {
-  return (
-    <div className="tk-dist">
-      {rows.map(r => (
-        <div key={r.star} className="tk-dist__row">
-          <span className="tk-dist__star">{r.star} <Icon name="star" /></span>
-          <div className="tk-meter" role="img" aria-label={`${r.count} reseñas de ${r.star} estrellas`}>
-            <div className="tk-meter__fill" style={{ width: `${r.pct * 100}%` }} />
-          </div>
-          <span className="tk-dist__count">{r.count}</span>
-        </div>
-      ))}
-    </div>
   )
 }
 

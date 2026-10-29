@@ -7,11 +7,12 @@ import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/
 import { HotelDashboard } from '@/routes/HotelDashboard'
 import { exportCSV, formatDateFull } from '@/lib/export'
 import {
-  AppLayout, PageContent, PageHeader, SectionHeader, KpiRow, KpiCard,
+  AppLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, Badge, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
   Avatar, Alert, EmptyState,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
+import { TrendBars, KpiSpark } from '@/components/Stats'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -101,6 +102,12 @@ export function AtlasAdmin() {
   const totalPropinas = propinas.reduce((s, p) => s + p.monto_total, 0)
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   const propinasMes = propinas.filter(p => new Date(p.created_at) >= inicioMes)
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
+    const key = d.toISOString().split('T')[0]
+    const label = d.toLocaleDateString('es-MX', { weekday: 'short' })
+    return { label, total: propinas.filter(p => p.created_at.startsWith(key)).reduce((s, p) => s + p.monto_total, 0) }
+  })
   const totalMes = propinasMes.reduce((s, p) => s + p.monto_total, 0)
 
   const filteredCols = colaboradores.filter(c => {
@@ -122,11 +129,15 @@ export function AtlasAdmin() {
               <>
                 <PageHeader title="Resumen general" subtitle="Toda la plataforma, en un vistazo" />
                 <KpiRow>
-                  <KpiCard featured label="Propinas este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} transacciones`} icon="tip" />
+                  <KpiCard featured label="Propinas este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} transacciones`} icon="tip"><KpiSpark values={last7.map(d => d.total)} /></KpiCard>
                   <KpiCard label="Total histórico" value={formatMXN(totalPropinas)} sub={`${propinas.length} pagos`} icon="trend" />
                   <KpiCard label="Hoteles activos" value={String(hotels.length)} icon="hotel" />
                   <KpiCard label="Colaboradores" value={String(colaboradores.filter(c => c.activo).length)} sub="activos" icon="users" />
                 </KpiRow>
+
+                <Card title="Propinas de los últimos 7 días" meta="Toda la plataforma, por día" className="tk-mb">
+                  <TrendBars data={last7} label="Propinas de la plataforma en los últimos 7 días" format={n => formatMXN(n).replace('MX$', '$')} />
+                </Card>
 
                 <div className="tk-grid-2">
                   <section>
