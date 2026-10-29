@@ -226,6 +226,8 @@ export function TipPage({ linkId }: Props) {
     setLoading(true)
     try {
       await supabase.from('resenas').insert({
+        colaborador_id: colaborador.id,
+        hotel_id: colaborador.hotel_id,
         estrellas: starRating,
         comentario: reviewText.trim() || null,
         publica: starRating >= 4,
@@ -248,6 +250,8 @@ export function TipPage({ linkId }: Props) {
       const { data: resena, error } = await supabase
         .from('resenas')
         .insert({
+          colaborador_id: colaborador.id,
+          hotel_id: colaborador.hotel_id,
           estrellas: starRating,
           comentario: reviewText.trim() || null,
           publica: starRating >= 4,
@@ -272,6 +276,8 @@ export function TipPage({ linkId }: Props) {
     if (!colaborador || starRating === 0) return
     try {
       await supabase.from('resenas').insert({
+        colaborador_id: colaborador.id,
+        hotel_id: colaborador.hotel_id,
         estrellas: starRating,
         comentario: null,
         publica: false,
@@ -309,6 +315,8 @@ export function TipPage({ linkId }: Props) {
     setLoading(true)
     try {
       await supabase.from('resenas').insert({
+        colaborador_id: colaborador.id,
+        hotel_id: colaborador.hotel_id,
         estrellas: null,
         comentario: commentText.trim(),
         publica: false,

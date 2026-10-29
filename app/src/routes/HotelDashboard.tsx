@@ -20,7 +20,7 @@ import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
 type Hotel = { id: string; nombre: string; stripe_api_key: string | null; google_place_id: string | null }
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
 type Propina = { id: string; monto_total: number; estado: string; colaborador_id: string; created_at: string }
-type Resena = { id: string; propina_id: string; estrellas: number | null; comentario: string | null; created_at: string }
+type Resena = { id: string; propina_id: string | null; colaborador_id: string | null; estrellas: number | null; comentario: string | null; created_at: string }
 type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'equipos' | 'leaderboard' | 'configuracion'
 
 function formatDate(iso: string) {
@@ -89,10 +89,9 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
     setColaboradores((cols as Colaborador[]) ?? [])
     setPropinas((props as Propina[]) ?? [])
     const propIds = ((props as Propina[]) ?? []).map(p => p.id)
-    if (propIds.length > 0) {
-      const { data: res } = await supabase.from('resenas').select('*').in('propina_id', propIds).order('created_at', { ascending: false })
-      setResenas((res as Resena[]) ?? [])
-    }
+    const filtro = [`hotel_id.eq.${hotelId}`, ...(propIds.length ? [`propina_id.in.(${propIds.join(',')})`] : [])].join(',')
+    const { data: res } = await supabase.from('resenas').select('*').or(filtro).order('created_at', { ascending: false })
+    setResenas((res as Resena[]) ?? [])
     setLoading(false)
   }
 
@@ -318,7 +317,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                   <Table headers={['Colaborador', 'Calificación', 'Comentario', 'Fecha']}>
                     {resenas.filter(r => r.comentario?.trim()).map(r => {
                       const propina = propinas.find(p => p.id === r.propina_id)
-                      const col = colaboradores.find(c => c.id === propina?.colaborador_id)
+                      const col = colaboradores.find(c => c.id === (r.colaborador_id ?? propina?.colaborador_id))
                       return (
                         <Tr key={r.id}>
                           <Td bold>{col?.nombre ?? '—'}</Td>
@@ -347,14 +346,14 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
           {tab === 'leaderboard' && (() => {
             const ranking = colaboradores.map(c => {
               const propIds = propinas.filter(p => p.colaborador_id === c.id).map(p => p.id)
-              const resCol = resenas.filter(r => propIds.includes(r.propina_id) && r.estrellas)
+              const resCol = resenas.filter(r => (r.colaborador_id === c.id || (!!r.propina_id && propIds.includes(r.propina_id))) && r.estrellas)
               const promedio = resCol.length ? resCol.reduce((s, r) => s + (r.estrellas ?? 0), 0) / resCol.length : 0
               const totalP = propinas.filter(p => p.colaborador_id === c.id).reduce((s, p) => s + p.monto_total, 0)
               return { ...c, promedio, totalResenas: resCol.length, totalP }
             }).filter(c => c.totalResenas > 0).sort((a, b) => b.promedio - a.promedio || b.totalResenas - a.totalResenas)
             const sinResenas = colaboradores.filter(c => {
               const propIds = propinas.filter(p => p.colaborador_id === c.id).map(p => p.id)
-              return resenas.filter(r => propIds.includes(r.propina_id) && r.estrellas).length === 0
+              return resenas.filter(r => (r.colaborador_id === c.id || (!!r.propina_id && propIds.includes(r.propina_id))) && r.estrellas).length === 0
             })
             return (
               <>

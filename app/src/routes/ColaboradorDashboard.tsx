@@ -71,10 +71,9 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
     setHotel(hotelData as Hotel)
     setPropinas((propinasData as Propina[]) ?? [])
     const propIds = (propinasForResenas.data ?? []).map((p: any) => p.id)
-    if (propIds.length > 0) {
-      const { data: resData } = await supabase.from('resenas').select('*').in('propina_id', propIds).order('created_at', { ascending: false })
-      setResenas((resData as Resena[]) ?? [])
-    }
+    const filtro = [`colaborador_id.eq.${col.id}`, ...(propIds.length ? [`propina_id.in.(${propIds.join(',')})`] : [])].join(',')
+    const { data: resData } = await supabase.from('resenas').select('*').or(filtro).order('created_at', { ascending: false })
+    setResenas((resData as Resena[]) ?? [])
     setLoading(false)
   }
 
