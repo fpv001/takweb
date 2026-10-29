@@ -610,11 +610,6 @@ body:has(.tk-guest) { background: var(--brand-600); }
   background: radial-gradient(90% 50% at 50% 12%, rgb(255 255 255 / 12%) 0%, rgb(255 255 255 / 0%) 70%), var(--brand-500);
   color: #fff;
 }
-.tk-guest::before {
-  content: ""; position: absolute; z-index: -1; left: 50%; top: 118px; width: 520px; height: 520px; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
-  background: repeating-radial-gradient(circle, rgb(255 255 255 / 0%) 0 68px, rgb(255 255 255 / 16%) 68px 69.5px, rgb(255 255 255 / 0%) 69.5px 104px);
-  -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); mask: radial-gradient(circle, #000 30%, transparent 70%);
-}
 @media (min-width: 520px) { .tk-guest { box-shadow: 0 0 0 1px rgb(126 42 37 / 20%), 0 30px 80px rgb(74 29 26 / 30%); } }
 
 .tk-gbar { display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 var(--s-6); }
@@ -633,7 +628,6 @@ body:has(.tk-guest) { background: var(--brand-600); }
 .tk-guest--compact .tk-ghead__hello { display: none; }
 .tk-guest--compact .tk-ghead__name { font: var(--t-h3); }
 .tk-guest--compact .tk-ghead__meta { margin-top: 2px; padding: 0; background: none; font-weight: 500; color: rgb(255 255 255 / 88%); }
-.tk-guest--compact::before { left: calc(var(--s-6) + 26px); top: 90px; width: 300px; height: 300px; }
 
 .tk-gcard {
   flex: 1; display: flex; flex-direction: column; padding: var(--s-6) var(--s-4) var(--s-6); color: var(--text);
