@@ -51,6 +51,8 @@ const translations = {
     cardExpiry: 'Vencimiento',
     cardCvc: 'CVC',
     starLabel: (n: number) => `${n} de 5 estrellas`,
+    hello: '¿Cómo te atendió?',
+    tag: 'Gracias que cuenta',
   },
   en: {
     labelAmount: 'How much would you like to leave?',
@@ -94,6 +96,8 @@ const translations = {
     cardExpiry: 'Expiry',
     cardCvc: 'CVC',
     starLabel: (n: number) => `${n} out of 5 stars`,
+    hello: 'How was your service?',
+    tag: 'Thanks that count',
   },
 }
 
@@ -338,11 +342,14 @@ export function TipPage({ linkId }: Props) {
 
   const header = colaborador && (
     <>
-      <div className="tk-gbar"><img src={logoUrl} alt="tak!" /></div>
+      <div className="tk-gbar"><img src={logoUrl} alt="tak!" /><span className="tk-gbar__tag">{t.tag}</span></div>
       <header className="tk-ghead">
-        <Avatar name={colaborador.nombre} src={colaborador.foto_url} size={88} />
-        <h1 className="tk-ghead__name">{colaborador.nombre}</h1>
-        <p className="tk-ghead__meta"><span>{[colaborador.puesto, hotel?.nombre].filter(Boolean).join(' · ')}</span></p>
+        <Avatar name={colaborador.nombre} src={colaborador.foto_url} size={96} />
+        <div>
+          <p className="tk-ghead__hello">{t.hello}</p>
+          <h1 className="tk-ghead__name">{colaborador.nombre}</h1>
+          <p className="tk-ghead__meta"><span>{[colaborador.puesto, hotel?.nombre].filter(Boolean).join(' · ')}</span></p>
+        </div>
       </header>
     </>
   )
@@ -419,7 +426,7 @@ export function TipPage({ linkId }: Props) {
   )
 
   return (
-    <div className="tk-guest">
+    <div className={step === 'landing' ? 'tk-guest' : 'tk-guest tk-guest--compact'}>
 
       {header}
 
