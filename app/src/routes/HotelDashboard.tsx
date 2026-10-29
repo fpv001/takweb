@@ -15,7 +15,7 @@ import {
   Avatar, Alert, EmptyState, LiveIndicator, Stars, FullscreenLoader,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
-import { TrendBars, RatingRing, RatingBars, KpiSpark } from '@/components/Stats'
+import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
 
 type Hotel = { id: string; nombre: string; stripe_api_key: string | null; google_place_id: string | null }
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
@@ -307,10 +307,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
               </KpiRow>
               {resenasConEstrellas.length > 0 && (
                 <Card title="Distribución de calificaciones" meta="Cuántas reseñas recibe cada calificación">
-                  <div className="tk-scorebox">
-                    <RatingRing value={calificacion} count={resenasConEstrellas.length} />
-                    <RatingBars rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
-                  </div>
+                  <RatingBreakdown value={calificacion} rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
                 </Card>
               )}
               <div style={{ marginTop: 32 }}>

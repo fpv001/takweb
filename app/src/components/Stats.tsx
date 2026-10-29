@@ -4,11 +4,10 @@ import { BarXAxis } from '@/components/charts/bar-x-axis'
 import { BarYAxis } from '@/components/charts/bar-y-axis'
 import { Grid } from '@/components/charts/grid'
 import { ChartTooltip } from '@/components/charts/tooltip'
-import { RingChart } from '@/components/charts/ring-chart'
-import { Ring } from '@/components/charts/ring'
-import { RingCenter } from '@/components/charts/ring-center'
+import { BarEndLabels } from '@/components/charts/bar-end-labels'
+import NumberFlow from '@number-flow/react'
 import { AreaSparkline } from '@/components/charts/sparkline'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { EmptyState } from '@/components/UI'
 
 function useNarrow(query = '(max-width: 640px)') {
@@ -44,30 +43,31 @@ export function TrendBars({ data, format, label, emptyText = 'Aún no hay movimi
   )
 }
 
-// Calificación promedio como anillo sobre 5 (Bklit).
-export function RatingRing({ value, count }: { value: number; count: number }) {
-  return (
-    <div className="tk-ring" role="img" aria-label={`Calificación promedio ${value.toFixed(1)} de 5, ${count} reseñas`}>
-      <RingChart data={[{ label: 'Calificación', value, maxValue: 5 }]} size={196} strokeWidth={18}>
-        <Ring index={0} color="var(--chart-line-primary)" />
-        <RingCenter defaultLabel={`de 5 · ${count} reseñas`} formatOptions={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
-      </RingChart>
-    </div>
-  )
-}
-
-// Reparto de reseñas por estrellas: barras horizontales (Bklit).
-export function RatingBars({ rows }: { rows: { star: number; count: number }[] }) {
+// Desglose de calificaciones (Bklit): promedio animado, estrellas y barras con pista por estrella.
+export function RatingBreakdown({ value, rows }: { value: number; rows: { star: number; count: number }[] }) {
   const narrow = useNarrow()
-  const data = rows.map(r => ({ estrellas: `${r.star} ★`, reseñas: r.count }))
+  const total = rows.reduce((s, r) => s + r.count, 0)
+  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0)
+  const data = rows.map(r => ({ estrellas: `${r.star} ${r.star === 1 ? 'estrella' : 'estrellas'}`, reseñas: r.count, resto: total - r.count }))
   const summary = rows.map(r => `${r.count} de ${r.star} estrellas`).join(', ')
   return (
-    <div className="tk-chart" role="img" aria-label={`Distribución de calificaciones: ${summary}`}>
-      <BarChart data={data} xDataKey="estrellas" orientation="horizontal" aspectRatio={narrow ? '1.5 / 1' : '3.4 / 1'} barGap={0.55} margin={{ left: 44 }}>
-        <Bar dataKey="reseñas" fill="var(--chart-line-primary)" lineCap="round" />
-        <BarYAxis />
-        <ChartTooltip rows={p => [{ color: 'var(--chart-line-primary)', label: 'Reseñas', value: String(p['reseñas']) }]} />
-      </BarChart>
+    <div className="tk-rating">
+      <div className="tk-rating__head">
+        <NumberFlow className="tk-rating__value" value={value} format={{ minimumFractionDigits: 1, maximumFractionDigits: 2 }} />
+        <div>
+          <span className="tk-rating__stars" style={{ '--fill': `${(value / 5) * 100}%` } as CSSProperties} aria-hidden="true">★★★★★</span>
+          <span className="tk-rating__count">{total} {total === 1 ? 'reseña' : 'reseñas'}</span>
+        </div>
+      </div>
+      <div className="tk-chart" role="img" aria-label={`Calificación promedio ${value.toFixed(2)} de 5. ${summary}`}>
+        <BarChart data={data} xDataKey="estrellas" orientation="horizontal" stacked aspectRatio={narrow ? '1.7 / 1' : '3.2 / 1'} barGap={0.42} margin={{ top: 4, bottom: 4, left: 84, right: 44 }}>
+          <Bar dataKey="reseñas" fill="var(--chart-line-primary)" lineCap="butt" fadedOpacity={0.35} />
+          <Bar dataKey="resto" fill="var(--surface-sunken)" lineCap="butt" fadedOpacity={1} />
+          <BarYAxis />
+          <BarEndLabels valueKey="reseñas" />
+          <ChartTooltip rows={p => [{ color: 'var(--chart-line-primary)', label: 'Reseñas', value: `${p['reseñas']} · ${pct(Number(p['reseñas']))}%` }]} />
+        </BarChart>
+      </div>
     </div>
   )
 }

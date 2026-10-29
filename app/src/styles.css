@@ -546,11 +546,14 @@ h1, h2, h3, p { margin: 0; }
 .tk-profile__meta svg { width: 16px; height: 16px; }
 @media (max-width: 640px) { .tk-profile { flex-direction: column; align-items: flex-start; gap: var(--s-4); padding: var(--s-4) var(--s-4) var(--s-4) var(--s-6); } }
 
-.tk-scorebox { display: flex; align-items: center; gap: var(--s-8); }
-.tk-scorebox > .tk-chart { flex: 1 1 auto; min-width: 0; }
 .tk-chart { width: 100%; min-width: 0; }
-.tk-ring { flex-shrink: 0; display: grid; place-items: center; }
-@media (max-width: 560px) { .tk-scorebox { flex-direction: column; align-items: stretch; gap: var(--s-4); } }
+.tk-rating { display: flex; flex-direction: column; gap: var(--s-4); }
+.tk-rating__head { display: flex; align-items: center; gap: var(--s-4); }
+.tk-rating__value { font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: var(--text); }
+.tk-rating__head > div { display: flex; flex-direction: column; gap: 4px; }
+.tk-rating__stars { --fill: 0%; font-size: 28px; line-height: 1; letter-spacing: 3px; background: linear-gradient(90deg, var(--brand-500) var(--fill), var(--border-strong) var(--fill)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tk-rating__count { font: var(--t-small); color: var(--text-muted); }
+@media (max-width: 560px) { .tk-rating__value { font-size: 52px; } .tk-rating__stars { font-size: 22px; } }
 
 /* Expediente */
 .tk-dossier { display: flex; gap: var(--s-4); align-items: center; padding: var(--s-4); margin-bottom: var(--s-6); background: var(--surface-sunken); border-radius: var(--r-lg); }

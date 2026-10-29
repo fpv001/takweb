@@ -11,7 +11,7 @@ import {
   Table, Tr, Td, StatusBadge, Btn, EmptyState, Stars, FullscreenLoader, LiveIndicator,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
-import { TrendBars, RatingRing, RatingBars, KpiSpark } from '@/components/Stats'
+import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
 
 type Colaborador = { id: string; nombre: string; puesto: string | null; foto_url: string | null; hotel_id: string; telefono: string | null; fecha_ingreso: string | null }
 type Hotel = { nombre: string }
@@ -192,10 +192,7 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
           <PageHeader title="Mis reseñas" subtitle="Lo que dicen los huéspedes de ti" />
           {calificacion > 0 && (
             <Card>
-              <div className="tk-scorebox">
-                <RatingRing value={calificacion} count={conEstrellas} />
-                <RatingBars rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
-              </div>
+              <RatingBreakdown value={calificacion} rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
             </Card>
           )}
           <div style={{ marginTop: 32 }}>
