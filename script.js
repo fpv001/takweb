@@ -66,6 +66,63 @@ if (!reducedMotion.matches && 'IntersectionObserver' in window) {
   motionSections.forEach((section) => sceneObserver.observe(section));
 }
 
+// Cards con anime.js: entrada escalonada y respuesta al cursor.
+const { anime } = window;
+if (anime && !reducedMotion.matches && 'IntersectionObserver' in window) {
+  document.documentElement.classList.add('anime-ready');
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      cardObserver.unobserve(entry.target);
+      anime({
+        targets: entry.target.children,
+        opacity: [0, 1],
+        translateY: [32, 0],
+        scale: [0.96, 1],
+        delay: anime.stagger(70),
+        duration: 900,
+        easing: 'easeOutExpo',
+        complete: () => [...entry.target.children].forEach((card) => { card.dataset.ready = ''; }),
+      });
+    });
+  }, { rootMargin: '0px 0px -12% 0px' });
+  document.querySelectorAll('.cards').forEach((list) => cardObserver.observe(list));
+
+  document.querySelectorAll('.card').forEach((card) => {
+    const icon = card.querySelector('.card-icon');
+    card.addEventListener('pointermove', (event) => {
+      const bounds = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${event.clientX - bounds.left}px`);
+      card.style.setProperty('--my', `${event.clientY - bounds.top}px`);
+    });
+    card.addEventListener('pointerenter', (event) => {
+      if (event.pointerType !== 'mouse' || !('ready' in card.dataset)) return;
+      anime.remove(card);
+      anime({ targets: card, translateY: -6, duration: 700, easing: 'easeOutElastic(1, .6)' });
+      if (!icon) return;
+      anime.remove(icon);
+      anime({
+        targets: icon,
+        rotate: [{ value: -12, duration: 160, easing: 'easeOutQuad' }, { value: 0, duration: 800, easing: 'easeOutElastic(1, .4)' }],
+        scale: [{ value: 1.15, duration: 160, easing: 'easeOutQuad' }, { value: 1, duration: 800, easing: 'easeOutElastic(1, .4)' }],
+      });
+    });
+    card.addEventListener('pointerleave', () => {
+      if (!('ready' in card.dataset)) return;
+      anime.remove(card);
+      anime({ targets: card, translateY: 0, scale: 1, duration: 500, easing: 'easeOutQuart' });
+    });
+    card.addEventListener('pointerdown', () => {
+      if (!('ready' in card.dataset)) return;
+      anime.remove(card);
+      anime({
+        targets: card,
+        scale: [{ value: 0.97, duration: 110, easing: 'easeOutQuad' }, { value: 1, duration: 600, easing: 'easeOutElastic(1, .5)' }],
+      });
+    });
+  });
+}
+
 // Scroll suavizado con inercia para rueda y trackpad en escritorio.
 // En táctil y con reduced motion se conserva el scroll nativo.
 const smoothScroll = (() => {

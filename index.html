@@ -6,8 +6,9 @@
   <meta name="description" content="tak! — thanks are kind! Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app." />
   <meta name="theme-color" content="#fff8f6" />
   <title>tak! — thanks are kind!</title>
-  <link rel="stylesheet" href="styles.css?v=20261029-3" />
-  <script src="script.js?v=20261029-3" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261029-6" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
+  <script src="script.js?v=20261029-6" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -48,33 +49,33 @@
     </section>
 
     <section class="section steps-section" id="como-funciona" aria-labelledby="steps-title">
-      <h2 id="steps-title">Acerca. Reseña. Agradece.</h2>
+      <h2 id="steps-title">Acerca. Reseña. <em>Agradece.</em></h2>
       <ol class="cards cards-3 steps">
-        <li class="card"><span class="step-number">1</span><h3>Acerca tu teléfono</h3><p>Toca la wristband tak! de la persona que te atendió.</p></li>
-        <li class="card"><span class="step-number">2</span><h3>Deja tu reseña</h3><p>Califica y cuenta qué hizo bien. Si quieres, suma una propina.</p></li>
-        <li class="card"><span class="step-number">3</span><h3>Confirma</h3><p>Revisas a quién va antes de enviar. Listo.</p></li>
+        <li class="card"><span class="step-number card-icon">1</span><h3>Acerca tu teléfono</h3><p>Toca la wristband tak! de la persona que te atendió.</p></li>
+        <li class="card"><span class="step-number card-icon">2</span><h3>Deja tu reseña</h3><p>Califica y cuenta qué hizo bien. Si quieres, suma una propina.</p></li>
+        <li class="card"><span class="step-number card-icon">3</span><h3>Confirma</h3><p>Revisas a quién va antes de enviar. Listo.</p></li>
       </ol>
     </section>
 
     <section class="section" id="negocios" aria-labelledby="negocios-title">
-      <h2 id="negocios-title">Donde hay buen servicio, hay lugar para un gracias.</h2>
+      <h2 id="negocios-title">Donde hay buen servicio, hay lugar para <em>un gracias.</em></h2>
       <p class="lead">tak! se adapta a cualquier negocio donde alguien hace que te sientas bien atendido.</p>
       <ul class="cards cards-4 business">
-        <li class="card"><h3>Hoteles</h3><p>Recepción, bar, alberca</p></li>
-        <li class="card"><h3>Restaurantes</h3><p>Meseros y cocina</p></li>
-        <li class="card"><h3>Bares y clubes</h3><p>Barra y servicio</p></li>
-        <li class="card"><h3>Valet parking</h3><p>Primer y último contacto</p></li>
-        <li class="card"><h3>Gasolineras</h3><p>Despachadores</p></li>
-        <li class="card"><h3>Cruceros</h3><p>Tripulación a bordo</p></li>
-        <li class="card"><h3>Spas y fitness</h3><p>Terapeutas y coaches</p></li>
-        <li class="card"><h3>Eventos</h3><p>Staff y producción</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></span><h3>Hoteles</h3><p>Recepción, bar, alberca</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 7h3"/></svg></span><h3>Restaurantes</h3><p>Meseros y cocina</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14l-7 8zM12 12v8M8 20h8"/></svg></span><h3>Bares y clubes</h3><p>Barra y servicio</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5M3 16h18M7 19v-3M17 19v-3"/><circle cx="8" cy="13" r=".6"/><circle cx="16" cy="13" r=".6"/></svg></span><h3>Valet parking</h3><p>Primer y último contacto</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M8 8h4M15 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg></span><h3>Gasolineras</h3><p>Despachadores</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l2 3h14l2-3zM6 17V11h12v6M9 11V7h6v4M12 7V4"/></svg></span><h3>Cruceros</h3><p>Tripulación a bordo</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20c-5 0-8-3-8-8 3 0 6 1.5 8 4 2-2.5 5-4 8-4 0 5-3 8-8 8zM12 16c-1.5-2-1.5-6 0-10 1.5 4 1.5 8 0 10z"/></svg></span><h3>Spas y fitness</h3><p>Terapeutas y coaches</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 0 0 4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2zM14 4v14"/></svg></span><h3>Eventos</h3><p>Staff y producción</p></li>
       </ul>
     </section>
 
     <section class="reviews" id="resenas" aria-labelledby="reviews-title">
       <div class="reviews-inner section">
         <div class="reviews-copy">
-          <h2 id="reviews-title">Cada gracias cuenta algo.</h2>
+          <h2 id="reviews-title">Cada gracias <em>cuenta algo.</em></h2>
           <p>Las reseñas llegan a la persona y al negocio. Tu equipo sabe qué hace bien, y tú sabes qué repetir.</p>
           <ul class="ticks">
             <li>Reseñas por colaborador y por área</li>
@@ -102,18 +103,18 @@
     </section>
 
     <section class="section" id="beneficios" aria-labelledby="benefits-title">
-      <h2 id="benefits-title">Más reconocimiento para tu equipo, menos fricción para tus clientes.</h2>
+      <h2 id="benefits-title">Más reconocimiento para tu equipo, <em>menos fricción</em> para tus clientes.</h2>
       <ul class="cards cards-3 benefits">
         <li class="card">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>
+          <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg></span>
           <h3>Mejor reputación</h3><p>Las reseñas te muestran la experiencia real de tus clientes, persona por persona.</p>
         </li>
         <li class="card">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4-7 8-7s7 2.5 8 7"/></svg>
+          <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4-7 8-7s7 2.5 8 7"/></svg></span>
           <h3>Equipo motivado</h3><p>Reconocimiento directo y justo que fortalece el orgullo de pertenecer.</p>
         </li>
         <li class="card">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+          <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
           <h3>Todo registrado</h3><p>Cada reseña y cada propina quedan con su persona, fecha y contexto.</p>
         </li>
       </ul>
