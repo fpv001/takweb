@@ -152,7 +152,7 @@ export function TipPage({ linkId }: Props) {
 
     if (error || !data) { setNotFound(true); document.title = 'tak'; return }
     setColaborador(data as Colaborador)
-    document.title = `Deja una propina a ${data.nombre} · tak`
+    document.title = `Agradece a: ${data.nombre} · tak!`
 
     const { data: hotelData, error: hotelError } = await supabase
       .from('hotels')
