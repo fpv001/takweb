@@ -32,9 +32,13 @@ h3{font-size:20px;letter-spacing:-.015em}
 /* Header */
 .site-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px max(var(--gutter),calc((100% - var(--max))/2));background:rgb(255 248 246/.88);backdrop-filter:blur(12px);transition:transform .3s ease}
 .site-header.is-hidden{transform:translateY(-100%)}
-.brand,.wordmark{font-size:34px;font-weight:700;letter-spacing:-.05em;line-height:1;text-decoration:none}
-.brand b,.wordmark b{color:var(--coral)}
-.wordmark{font-size:18px;color:var(--ink)}
+.site-header{isolation:isolate;min-height:90px;padding-block:0}
+.site-header::before{content:"";position:absolute;left:0;top:0;bottom:0;z-index:-1;width:calc(max(var(--gutter),(100% - var(--max))/2) + 190px);background:var(--coral);border-bottom-right-radius:110px;box-shadow:0 8px 0 rgb(168 58 52/.18)}
+.brand{display:flex;width:124px;align-items:center;transition:transform .18s ease}
+.brand img{width:100%;height:auto}
+.brand:hover{transform:translateY(-1px) rotate(-1deg)}
+.wordmark{font-size:18px;font-weight:700;letter-spacing:-.05em;color:var(--ink)}
+.wordmark b{color:var(--coral)}
 .site-nav{display:flex;align-items:center;gap:32px}
 .site-nav>a:not(.button){font-weight:600;text-decoration:none;position:relative}
 .site-nav>a:not(.button)::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;background:var(--coral);transform:scaleX(0);transform-origin:left;transition:transform .2s}
@@ -265,6 +269,9 @@ h2 em{font-style:normal;color:var(--coral-dark)}
   .contact-form{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:860px){
+  .site-header{min-height:76px}
+  .site-header::before{width:calc(var(--gutter) + 150px);border-bottom-right-radius:90px}
+  .brand{width:100px}
   .menu-button{display:grid;gap:5px;width:46px;height:46px;place-content:center;border:0;border-radius:50%;background:var(--white);cursor:pointer}
   .menu-button span:not(.sr-only){width:20px;height:2px;border-radius:2px;background:var(--ink);transition:transform .2s,opacity .2s}
   .menu-button[aria-expanded=true] span:nth-child(1){transform:translateY(7px) rotate(45deg)}
