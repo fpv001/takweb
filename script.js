@@ -47,7 +47,7 @@ if ('IntersectionObserver' in window) {
       if (entry.isIntersecting) navLinks.forEach((link) => link.removeAttribute('aria-current'));
     });
   }, { rootMargin: '-45% 0px -50% 0px' });
-  document.querySelectorAll('.hero, #confianza, #contacto').forEach((section) => clearCurrent.observe(section));
+  document.querySelectorAll('.hero, #resenas, #beneficios, #contacto').forEach((section) => clearCurrent.observe(section));
 }
 
 const motionSections = [...document.querySelectorAll('main > section')];
@@ -64,58 +64,6 @@ if (!reducedMotion.matches && 'IntersectionObserver' in window) {
     });
   }, { rootMargin: '0px 0px -18% 0px' });
   motionSections.forEach((section) => sceneObserver.observe(section));
-
-  // Profundidad ligada al scroll: sólo se calcula en las escenas visibles.
-  const visible = new Set();
-  const visibilityObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => (entry.isIntersecting ? visible.add(entry.target) : visible.delete(entry.target)));
-    requestSceneProgress();
-  });
-  motionSections.forEach((section) => visibilityObserver.observe(section));
-
-  let scrollFrame = 0;
-  const updateSceneProgress = () => {
-    scrollFrame = 0;
-    const viewportHeight = window.innerHeight;
-    visible.forEach((section) => {
-      const bounds = section.getBoundingClientRect();
-      const rawProgress = (viewportHeight * 0.5 - (bounds.top + bounds.height * 0.5)) / viewportHeight;
-      const progress = Math.max(-1, Math.min(1, rawProgress));
-      section.style.setProperty('--scroll-progress', progress.toFixed(3));
-    });
-  };
-  function requestSceneProgress() {
-    if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updateSceneProgress);
-  }
-  window.addEventListener('scroll', requestSceneProgress, { passive: true });
-  window.addEventListener('resize', requestSceneProgress);
-
-  // Hero: el producto sigue al mouse con inercia, nunca en seco.
-  const hero = document.querySelector('.hero');
-  const pointerTarget = { x: 0, y: 0 };
-  const pointerCurrent = { x: 0, y: 0 };
-  let pointerFrame = 0;
-  const easePointer = () => {
-    pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * 0.045;
-    pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * 0.045;
-    hero.style.setProperty('--pointer-x', pointerCurrent.x.toFixed(4));
-    hero.style.setProperty('--pointer-y', pointerCurrent.y.toFixed(4));
-    const settled = Math.abs(pointerTarget.x - pointerCurrent.x) < 0.001 && Math.abs(pointerTarget.y - pointerCurrent.y) < 0.001;
-    pointerFrame = settled ? 0 : window.requestAnimationFrame(easePointer);
-  };
-  const followPointer = () => { if (!pointerFrame) pointerFrame = window.requestAnimationFrame(easePointer); };
-  hero.addEventListener('pointermove', (event) => {
-    if (event.pointerType !== 'mouse') return;
-    const bounds = hero.getBoundingClientRect();
-    pointerTarget.x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
-    pointerTarget.y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
-    followPointer();
-  });
-  hero.addEventListener('pointerleave', () => {
-    pointerTarget.x = 0;
-    pointerTarget.y = 0;
-    followPointer();
-  });
 }
 
 // Scroll suavizado con inercia para rueda y trackpad en escritorio.
@@ -170,36 +118,6 @@ document.addEventListener('click', (event) => {
   event.preventDefault();
   smoothScroll.to(target ? target.getBoundingClientRect().top + window.scrollY : 0);
   history.pushState(null, '', hash);
-});
-
-// Cómo funciona: pestañas "Para clientes / Para hoteles" con teclado (flechas, Inicio, Fin).
-const audienceTabs = [...document.querySelectorAll('.audience-tab')];
-const journeyTitle = document.getElementById('journey-title');
-const selectAudience = (tab, focus = false) => {
-  audienceTabs.forEach((item) => {
-    const selected = item === tab;
-    const panel = document.getElementById(item.getAttribute('aria-controls'));
-    item.setAttribute('aria-selected', String(selected));
-    item.tabIndex = selected ? 0 : -1;
-    panel.hidden = !selected;
-    if (selected) {
-      panel.classList.remove('is-entering');
-      void panel.offsetWidth;
-      panel.classList.add('is-entering');
-    }
-  });
-  journeyTitle.textContent = tab.dataset.title;
-  if (focus) tab.focus();
-};
-audienceTabs.forEach((tab, index) => {
-  tab.addEventListener('click', () => selectAudience(tab));
-  tab.addEventListener('keydown', (event) => {
-    const last = audienceTabs.length - 1;
-    const next = { ArrowRight: index === last ? 0 : index + 1, ArrowLeft: index === 0 ? last : index - 1, Home: 0, End: last }[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    selectAudience(audienceTabs[next], true);
-  });
 });
 
 // Menú móvil.
