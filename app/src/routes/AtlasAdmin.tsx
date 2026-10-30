@@ -6,6 +6,9 @@ import { crearUsuario } from '@/lib/edgeFunctions'
 import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/components/ExpedienteModal'
 import { HotelDashboard } from '@/routes/HotelDashboard'
 import { exportCSV, formatDateFull } from '@/lib/export'
+import { googleReviewUrl, limpiarPlaceId } from '@/lib/googlePlace'
+import { etiquetasNegocio, TIPOS_NEGOCIO, type TipoNegocio } from '@/lib/negocio'
+import { TIP_BASE_URL, insertarColaborador, linkColaborador } from '@/lib/slug'
 import {
   AppLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, Badge, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
@@ -16,7 +19,7 @@ import { TrendBars, KpiSpark } from '@/components/Stats'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Hotel = { id: string; nombre: string; stripe_api_key: string | null; created_at: string }
+type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null; created_at: string }
 type Colaborador = { id: string; nombre: string; puesto: string | null; hotel_id: string; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null }
 type Propina = { id: string; monto_total: number; estado: string; hotel_id: string; colaborador_id: string; created_at: string }
 type Tab = 'resumen' | 'hoteles' | 'colaboradores' | 'propinas'
@@ -35,7 +38,7 @@ function timeAgo(iso: string) {
 
 const NAV = [
   { id: 'resumen', label: 'Resumen', icon: 'resumen' },
-  { id: 'hoteles', label: 'Hoteles', icon: 'hotel' },
+  { id: 'hoteles', label: 'Negocios', icon: 'hotel' },
   { id: 'colaboradores', label: 'Colaboradores', icon: 'users' },
   { id: 'propinas', label: 'Propinas', icon: 'tip' },
 ]
@@ -66,7 +69,7 @@ export function AtlasAdmin() {
   function exportarPropinas() {
     exportCSV(
       'propinas-atlas',
-      ['Colaborador', 'Hotel', 'Monto', 'Estado', 'Fecha'],
+      ['Colaborador', 'Negocio', 'Monto', 'Estado', 'Fecha'],
       propinas.map(p => {
         const col = colaboradores.find(c => c.id === p.colaborador_id)
         const hot = hotels.find(h => h.id === p.hotel_id)
@@ -78,7 +81,7 @@ export function AtlasAdmin() {
   function exportarColaboradores() {
     exportCSV(
       'colaboradores-atlas',
-      ['Nombre', 'Puesto', 'Hotel', 'Link NFC', 'Estado'],
+      ['Nombre', 'Puesto', 'Negocio', 'Link NFC', 'Estado'],
       colaboradores.map(c => {
         const hot = hotels.find(h => h.id === c.hotel_id)
         return [c.nombre, c.puesto ?? '—', hot?.nombre ?? '—', c.link_unico, c.activo ? 'Activo' : 'Inactivo']
@@ -131,7 +134,7 @@ export function AtlasAdmin() {
                 <KpiRow>
                   <KpiCard featured label="Propinas este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} transacciones`} icon="tip"><KpiSpark values={last7.map(d => d.total)} /></KpiCard>
                   <KpiCard label="Total histórico" value={formatMXN(totalPropinas)} sub={`${propinas.length} pagos`} icon="trend" />
-                  <KpiCard label="Hoteles activos" value={String(hotels.length)} icon="hotel" />
+                  <KpiCard label="Negocios activos" value={String(hotels.length)} icon="hotel" />
                   <KpiCard label="Colaboradores" value={String(colaboradores.filter(c => c.activo).length)} sub="activos" icon="users" />
                 </KpiRow>
 
@@ -141,11 +144,11 @@ export function AtlasAdmin() {
 
                 <div className="tk-grid-2">
                   <section>
-                    <SectionHeader title="Hoteles" subtitle="Toca un hotel para ver su panel" />
+                    <SectionHeader title="Negocios" subtitle="Toca un negocio para ver su panel" />
                     {hotels.length === 0 ? (
-                      <EmptyState icon="hotel" title="Aún no hay hoteles" text="Registra el primer hotel desde la sección Hoteles." />
+                      <EmptyState icon="hotel" title="Aún no hay negocios" text="Registra el primer negocio desde la sección Negocios." />
                     ) : (
-                      <Table headers={['Hotel', 'Colaboradores', 'Total']} numCols={[1, 2]}>
+                      <Table headers={['Negocio', 'Colaboradores', 'Total']} numCols={[1, 2]}>
                         {hotels.slice(0, 6).map(h => {
                           const cols = colaboradores.filter(c => c.hotel_id === h.id).length
                           const total = propinas.filter(p => p.hotel_id === h.id).reduce((s, p) => s + p.monto_total, 0)
@@ -169,7 +172,7 @@ export function AtlasAdmin() {
                     {propinas.length === 0 ? (
                       <EmptyState icon="tip" title="Sin propinas todavía" text="Las propinas aparecerán aquí en cuanto se registren." />
                     ) : (
-                      <Table headers={['Colaborador', 'Hotel', 'Monto', 'Estado']} numCols={[2]}>
+                      <Table headers={['Colaborador', 'Negocio', 'Monto', 'Estado']} numCols={[2]}>
                         {propinas.slice(0, 8).map(p => {
                           const col = colaboradores.find(c => c.id === p.colaborador_id)
                           const hot = hotels.find(h => h.id === p.hotel_id)
@@ -193,23 +196,25 @@ export function AtlasAdmin() {
             {tab === 'hoteles' && (
               <>
                 <PageHeader
-                  title="Hoteles"
-                  subtitle={`${hotels.length} hoteles registrados`}
-                  action={<Btn icon="plus" onClick={() => setHotelModal('new')}>Nuevo hotel</Btn>}
+                  title="Negocios"
+                  subtitle={`${hotels.length} negocios registrados`}
+                  action={<Btn icon="plus" onClick={() => setHotelModal('new')}>Nuevo negocio</Btn>}
                 />
                 {hotels.length === 0 ? (
-                  <EmptyState icon="hotel" title="Aún no hay hoteles registrados" text="Crea el primer hotel para empezar a sumar colaboradores." action={<Btn icon="plus" onClick={() => setHotelModal('new')}>Nuevo hotel</Btn>} />
+                  <EmptyState icon="hotel" title="Aún no hay negocios registrados" text="Crea el primer negocio para empezar a sumar colaboradores." action={<Btn icon="plus" onClick={() => setHotelModal('new')}>Nuevo negocio</Btn>} />
                 ) : (
-                  <Table headers={['Hotel', 'Colaboradores', 'Propinas', 'Total generado', 'Stripe', 'Desde', '']} numCols={[1, 2, 3]}>
+                  <Table headers={['Negocio', 'Tipo', 'Colaboradores', 'Propinas', 'Total generado', 'Stripe', 'Desde', '']} numCols={[2, 3, 4]}>
                     {hotels.map(h => {
                       const cols = colaboradores.filter(c => c.hotel_id === h.id)
                       const props = propinas.filter(p => p.hotel_id === h.id)
                       const total = props.reduce((s, p) => s + p.monto_total, 0)
+                      const et = etiquetasNegocio(h.tipo)
                       return (
                         <Tr key={h.id}>
                           <Td bold>
                             <span className="tk-cell-person"><Avatar name={h.nombre} size={36} /><span>{h.nombre}</span></span>
                           </Td>
+                          <Td><Badge text={et.singularCap} tone={et.tipo === 'hotel' ? 'info' : et.tipo === 'restaurante' ? 'warning' : 'success'} /></Td>
                           <Td right muted>{cols.length}</Td>
                           <Td right muted>{props.length}</Td>
                           <Td right bold>{formatMXN(total)}</Td>
@@ -256,15 +261,15 @@ export function AtlasAdmin() {
                       value={search} onChange={e => setSearch(e.target.value)}
                     />
                   </span>
-                  <select className="tk-select" aria-label="Filtrar por hotel" value={hotelFilter} onChange={e => setHotelFilter(e.target.value)}>
-                    <option value="all">Todos los hoteles</option>
+                  <select className="tk-select" aria-label="Filtrar por negocio" value={hotelFilter} onChange={e => setHotelFilter(e.target.value)}>
+                    <option value="all">Todos los negocios</option>
                     {hotels.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
                   </select>
                 </div>
                 {filteredCols.length === 0 ? (
-                  <EmptyState icon="users" title="No se encontraron colaboradores" text={search || hotelFilter !== 'all' ? 'Prueba con otro nombre o cambia el filtro de hotel.' : 'Agrega el primer colaborador para generar su enlace NFC.'} />
+                  <EmptyState icon="users" title="No se encontraron colaboradores" text={search || hotelFilter !== 'all' ? 'Prueba con otro nombre o cambia el filtro de negocio.' : 'Agrega el primer colaborador para generar su enlace NFC.'} />
                 ) : (
-                  <Table headers={['Colaborador', 'Puesto', 'Hotel', 'Enlace NFC', 'Propinas', 'Total', 'Estado', '']} numCols={[4, 5]}>
+                  <Table headers={['Colaborador', 'Puesto', 'Negocio', 'Enlace NFC', 'Propinas', 'Total', 'Estado', '']} numCols={[4, 5]}>
                     {filteredCols.map(c => {
                       const hotel = hotels.find(h => h.id === c.hotel_id)
                       const props = propinas.filter(p => p.colaborador_id === c.id)
@@ -301,8 +306,8 @@ export function AtlasAdmin() {
               <>
                 <PageHeader title="Propinas" subtitle="Historial completo de transacciones" action={<Btn variant="secondary" icon="download" onClick={exportarPropinas}>Exportar CSV</Btn>} />
                 <div className="tk-toolbar">
-                  <select className="tk-select" aria-label="Filtrar por hotel" value={hotelFilter} onChange={e => setHotelFilter(e.target.value)}>
-                    <option value="all">Todos los hoteles</option>
+                  <select className="tk-select" aria-label="Filtrar por negocio" value={hotelFilter} onChange={e => setHotelFilter(e.target.value)}>
+                    <option value="all">Todos los negocios</option>
                     {hotels.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
                   </select>
                 </div>
@@ -314,7 +319,7 @@ export function AtlasAdmin() {
                 {filteredProps.length === 0 ? (
                   <EmptyState icon="tip" title="No hay propinas registradas" text="Cuando un huésped deje una propina aparecerá aquí." />
                 ) : (
-                  <Table headers={['Colaborador', 'Hotel', 'Monto', 'Estado', 'Fecha']} numCols={[2]}>
+                  <Table headers={['Colaborador', 'Negocio', 'Monto', 'Estado', 'Fecha']} numCols={[2]}>
                     {filteredProps.slice(0, 100).map(p => {
                       const col = colaboradores.find(c => c.id === p.colaborador_id)
                       const hot = hotels.find(h => h.id === p.hotel_id)
@@ -371,30 +376,66 @@ export function AtlasAdmin() {
 function HotelModal({ hotel, onClose, onSave }: { hotel: Hotel | null; onClose: () => void; onSave: () => void }) {
   const [nombre, setNombre] = useState(hotel?.nombre ?? '')
   const [stripe, setStripe] = useState(hotel?.stripe_api_key ?? '')
+  const [placeId, setPlaceId] = useState(hotel?.google_place_id ?? '')
+  const [tipo, setTipo] = useState<TipoNegocio>(etiquetasNegocio(hotel?.tipo).tipo)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const preview = limpiarPlaceId(placeId)
+
   async function handleSave() {
     if (!nombre.trim()) { setError('El nombre es requerido'); return }
+    if (hotel && preview.error) { setError(preview.error); return }
     setSaving(true)
+    setError('')
     try {
       if (hotel) {
-        await supabase.from('hotels').update({ nombre: nombre.trim(), stripe_api_key: stripe.trim() || null }).eq('id', hotel.id)
+        const { error: errorUpdate } = await supabase.from('hotels').update({ nombre: nombre.trim(), tipo, stripe_api_key: stripe.trim() || null }).eq('id', hotel.id)
+        if (errorUpdate) { setError(errorUpdate.message); return }
+        if (preview.valor !== (hotel.google_place_id ?? '')) {
+          const { error: errorPlace } = await supabase.rpc('set_hotel_google_place_id', { p_hotel_id: hotel.id, p_place_id: preview.valor })
+          if (errorPlace) { setError('No se pudo guardar el Google Place ID: ' + errorPlace.message); return }
+        }
       } else {
-        await supabase.from('hotels').insert({ nombre: nombre.trim(), stripe_api_key: stripe.trim() || null })
+        const { error: errorInsert } = await supabase.from('hotels').insert({ nombre: nombre.trim(), tipo, stripe_api_key: stripe.trim() || null })
+        if (errorInsert) { setError(errorInsert.message); return }
       }
       onSave()
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
   }
 
   return (
-    <Modal title={hotel ? 'Editar hotel' : 'Nuevo hotel'} onClose={onClose}>
-      <FormField label="Nombre del hotel">
+    <Modal title={hotel ? 'Editar negocio' : 'Nuevo negocio'} onClose={onClose}>
+      <FormField label="Nombre del negocio">
         <Input value={nombre} onChange={setNombre} placeholder="Ej. Hotel Camino Real" />
+      </FormField>
+      <FormField label="Tipo de negocio">
+        <Select value={tipo} onChange={v => setTipo(v as TipoNegocio)}>
+          {TIPOS_NEGOCIO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </Select>
       </FormField>
       <FormField label="Clave API de Stripe" hint="Opcional. Necesaria para procesar pagos reales.">
         <Input value={stripe} onChange={setStripe} placeholder="sk_live_..." />
       </FormField>
+      {hotel && (
+        <FormField label="Google Place ID" hint="Lo configura el equipo de tak! por cliente. Pega el Place ID (ChIJ…) o el enlace completo de Google. Vacío = sin Google.">
+          <Input value={placeId} onChange={setPlaceId} placeholder="ChIJ…" />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            <Badge text={hotel.google_place_id ? 'Google conectado' : 'Sin configurar'} tone={hotel.google_place_id ? 'success' : 'neutral'} />
+            <Btn
+              small
+              variant="secondary"
+              icon="external"
+              disabled={!preview.valor || !!preview.error}
+              onClick={() => window.open(googleReviewUrl(preview.valor), '_blank', 'noopener')}
+            >
+              Probar enlace
+            </Btn>
+          </div>
+          {preview.error && <p className="tk-muted" style={{ marginTop: 6 }}>{preview.error}</p>}
+          {!preview.error && preview.advertencia && <p className="tk-muted" style={{ marginTop: 6 }}>{preview.advertencia}</p>}
+        </FormField>
+      )}
       {error && <Alert>{error}</Alert>}
       <ModalActions>
         <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
@@ -411,22 +452,35 @@ function ColaboradorModal({ colaborador, hotels, onClose, onSave }: { colaborado
   const [puesto, setPuesto] = useState(colaborador?.puesto ?? '')
   const [hotelId, setHotelId] = useState(colaborador?.hotel_id ?? hotels[0]?.id ?? '')
   const [link, setLink] = useState(colaborador?.link_unico ?? '')
+  const [linkManual, setLinkManual] = useState(false)
   const [activo, setActivo] = useState(colaborador?.activo ?? true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  function slugify(s: string) {
-    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const nombreDeNegocio = (id: string) => hotels.find(h => h.id === id)?.nombre ?? ''
+
+  // Mientras el enlace no se edite a mano, se genera con nombre + negocio
+  function handleNombre(v: string) {
+    setNombre(v)
+    if (!colaborador && !linkManual) setLink(linkColaborador(v, nombreDeNegocio(hotelId)))
+  }
+
+  function handleNegocio(id: string) {
+    setHotelId(id)
+    if (!colaborador && !linkManual) setLink(linkColaborador(nombre, nombreDeNegocio(id)))
   }
 
   async function handleSave() {
-    if (!nombre.trim() || !link.trim() || !hotelId) { setError('Completa todos los campos requeridos'); return }
-    setSaving(true)
+    if (!nombre.trim() || !hotelId || (!colaborador && !link.trim())) { setError('Completa todos los campos requeridos'); return }
+    setSaving(true); setError('')
     try {
       if (colaborador) {
-        await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, link_unico: link.trim(), activo }).eq('id', colaborador.id)
+        // El enlace de un colaborador existente no cambia: la pulsera NFC ya programada depende de él
+        const { error: err } = await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo }).eq('id', colaborador.id)
+        if (err) { setError(err.message); return }
       } else {
-        await supabase.from('colaboradores').insert({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, link_unico: link.trim(), activo: true })
+        const res = await insertarColaborador({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo: true }, link.trim(), linkManual)
+        if (res.error) { setError(res.error); return }
       }
       onSave()
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
@@ -435,19 +489,25 @@ function ColaboradorModal({ colaborador, hotels, onClose, onSave }: { colaborado
   return (
     <Modal title={colaborador ? 'Editar colaborador' : 'Nuevo colaborador'} onClose={onClose}>
       <FormField label="Nombre completo">
-        <Input value={nombre} onChange={v => { setNombre(v); if (!colaborador) setLink(slugify(v)) }} placeholder="Jorge Martínez" />
+        <Input value={nombre} onChange={handleNombre} placeholder="Jorge Martínez" />
       </FormField>
       <FormField label="Puesto">
         <Input value={puesto} onChange={setPuesto} placeholder="Botones, Spa, Recepción..." />
       </FormField>
-      <FormField label="Hotel">
-        <Select value={hotelId} onChange={setHotelId}>
+      <FormField label="Negocio">
+        <Select value={hotelId} onChange={handleNegocio}>
           {hotels.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
         </Select>
       </FormField>
-      <FormField label="Enlace único NFC" hint={`Dirección de propina: ${TIP_BASE_URL}/${link || '…'}`}>
-        <Input value={link} onChange={setLink} placeholder="jorge-martinez" />
-      </FormField>
+      {colaborador ? (
+        <FormField label="Enlace único NFC" hint="Cambiar este enlace deja de funcionar la pulsera NFC ya programada">
+          <span className="tk-link"><span className="tk-link__path">{`${TIP_BASE_URL}/${colaborador.link_unico}`}</span></span>
+        </FormField>
+      ) : (
+        <FormField label="Enlace único NFC" hint={`Se genera con nombre y negocio; puedes editarlo. Dirección de propina: ${TIP_BASE_URL}/${link || '…'}`}>
+          <Input value={link} onChange={v => { setLink(v); setLinkManual(true) }} placeholder="jorge-martinez-nombre-negocio" />
+        </FormField>
+      )}
       {colaborador && (
         <FormField label="Estado">
           <Select value={activo ? 'activo' : 'inactivo'} onChange={v => setActivo(v === 'activo')}>
@@ -486,7 +546,7 @@ function CrearUsuarioModal({ hotels, colaboradores, onClose, onSave }: {
   async function handleSave() {
     if (!email.trim() || !password.trim()) { setError('Email y contraseña son requeridos'); return }
     if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return }
-    if ((rol === 'hotel_admin' || rol === 'colaborador') && !hotelId) { setError('Selecciona un hotel'); return }
+    if ((rol === 'hotel_admin' || rol === 'colaborador') && !hotelId) { setError('Selecciona un negocio'); return }
     if (rol === 'colaborador' && !colaboradorId) { setError('Selecciona el colaborador asociado'); return }
 
     setSaving(true)
@@ -506,14 +566,14 @@ function CrearUsuarioModal({ hotels, colaboradores, onClose, onSave }: {
     <Modal title="Crear acceso" onClose={onClose}>
       <FormField label="Rol">
         <Select value={rol} onChange={v => setRol(v as any)}>
-          <option value="hotel_admin">Gerente de hotel</option>
+          <option value="hotel_admin">Gerente o administrador de negocio</option>
           <option value="colaborador">Colaborador</option>
           <option value="atlas_admin">Admin de tak!</option>
         </Select>
       </FormField>
 
       {rol !== 'atlas_admin' && (
-        <FormField label="Hotel">
+        <FormField label="Negocio">
           <Select value={hotelId} onChange={v => { setHotelId(v); setColaboradorId('') }}>
             {hotels.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
           </Select>
@@ -550,8 +610,6 @@ function CrearUsuarioModal({ hotels, colaboradores, onClose, onSave }: {
 }
 
 // ─── CopyLink ─────────────────────────────────────────────────────────────────
-
-const TIP_BASE_URL = `${import.meta.env.VITE_WEB_URL ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}/tip`
 
 function CopyLink({ linkUnico }: { linkUnico: string }) {
   const [copied, setCopied] = useState(false)

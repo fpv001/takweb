@@ -8,8 +8,8 @@ const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 
 createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, `http://${request.headers.host}`).pathname);
-  // Panel tak!: /admin, /dashboard y /tip/* sirven el SPA compilado en admin/.
-  const spa = /^\/(admin|dashboard)(\/|$)|^\/tip\//.test(pathname) && !/\.[a-z0-9]+$/i.test(pathname);
+  // Panel tak!: /admin, /dashboard, /tip/* y /r/* sirven el SPA compilado en admin/.
+  const spa = /^\/(admin|dashboard)(\/|$)|^\/tip\/|^\/r\//.test(pathname) && !/\.[a-z0-9]+$/i.test(pathname);
   const relative = spa ? 'admin/index.html' : pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const file = normalize(join(root, relative));
   if (!file.startsWith(root)) { response.writeHead(403).end('Forbidden'); return; }

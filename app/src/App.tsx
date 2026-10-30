@@ -4,6 +4,7 @@ import { AtlasAdmin } from '@/routes/AtlasAdmin'
 import { HotelDashboard } from '@/routes/HotelDashboard'
 import { ColaboradorDashboard } from '@/routes/ColaboradorDashboard'
 import { TipPage } from '@/routes/TipPage'
+import { ResenaPage } from '@/routes/ResenaPage'
 import { Btn, FullscreenLoader } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 
@@ -29,6 +30,8 @@ export function App() {
   // ── Rutas públicas — no requieren login ──────────────────────────────────
   const tipMatch = path.match(/^\/tip\/(.+)$/)
   if (tipMatch) return <TipPage linkId={tipMatch[1]} />
+  const resenaMatch = path.match(/^\/r\/(.+)$/)
+  if (resenaMatch) return <ResenaPage linkId={resenaMatch[1]} />
 
   // ── Rutas privadas — requieren login ─────────────────────────────────────
   if (loading) return <Spinner />

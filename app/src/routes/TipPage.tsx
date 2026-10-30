@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { getInitials, formatMXN, detectLang } from '@/lib/utils'
+import { googleReviewUrl } from '@/lib/googlePlace'
 import { Alert, Avatar, Btn, Skeleton } from '@/components/UI'
 import { Icon, type IconName } from '@/components/Icon'
 import logoUrl from '@/assets/tak-logo.webp'
@@ -40,6 +41,7 @@ const translations = {
     helpImprove: 'Tu comentario nos ayuda a mejorar',
     tipButton: 'Continuar a la propina',
     skipTipButton: 'Enviar sin propina',
+    googleCopied: 'Comentario copiado: pégalo en Google',
     back: 'Volver',
     commentTitle: (name: string) => `Déjale un mensaje a ${name}`,
     commentPlaceholder: 'Cuéntale algo que te haya gustado o sugerencias de mejora...',
@@ -85,6 +87,7 @@ const translations = {
     helpImprove: 'Your feedback helps us improve',
     tipButton: 'Continue to tip',
     skipTipButton: 'Send without a tip',
+    googleCopied: 'Comment copied: paste it in Google',
     back: 'Back',
     commentTitle: (name: string) => `Leave a message for ${name}`,
     commentPlaceholder: 'Tell them something you liked or suggestions for improvement...',
@@ -101,13 +104,34 @@ const translations = {
   },
 }
 
-type Hotel = { id: string; nombre: string; stripe_api_key: string | null; google_place_id: string | null }
+type Hotel = { id: string; nombre: string; tipo: string | null; google_place_id: string | null }
 type Colaborador = {
   id: string; nombre: string; puesto: string | null
   foto_url: string | null; hotel_id: string
 }
 
 type Props = { linkId: string }
+
+// Copia sin await: iOS Safari bloquea window.open si hay un await antes en el mismo gesto
+function copyToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => execCopy(text))
+  } else {
+    execCopy(text)
+  }
+}
+
+function execCopy(text: string) {
+  const area = document.createElement('textarea')
+  area.value = text
+  area.setAttribute('readonly', '')
+  area.style.position = 'fixed'
+  area.style.opacity = '0'
+  document.body.appendChild(area)
+  area.select()
+  try { document.execCommand('copy') } catch (err) { console.error('No se pudo copiar el comentario:', err) }
+  document.body.removeChild(area)
+}
 
 export function TipPage({ linkId }: Props) {
   const lang = detectLang()
@@ -134,6 +158,9 @@ export function TipPage({ linkId }: Props) {
   const [cameFromReview, setCameFromReview] = useState(false)
   const [successType, setSuccessType] = useState<'tip' | 'comment' | 'review'>('tip')
   const [googleOpened, setGoogleOpened] = useState(false)
+  const [copiedNotice, setCopiedNotice] = useState(false)
+  // Guarda la reseña en cuanto se toca Google; los pasos siguientes esperan esta promesa y la actualizan
+  const pendingSaveRef = useRef<Promise<string | null> | null>(null)
 
   useEffect(() => { loadColaborador() }, [linkId])
 
@@ -155,16 +182,16 @@ export function TipPage({ linkId }: Props) {
     document.title = `Agradece a: ${data.nombre.toLowerCase().replace(/(^|\s)\p{L}/gu, (c: string) => c.toUpperCase())} · tak!`
 
     const { data: hotelData, error: hotelError } = await supabase
-      .from('hotels')
-      .select('id, nombre, stripe_api_key, google_place_id')
-      .eq('id', data.hotel_id)
+      .rpc('get_hotel_publico', { p_hotel_id: data.hotel_id })
       .maybeSingle()
 
-    console.log('Hotel query result:', { hotelData, hotelError, hotel_id: data.hotel_id })
-    if (hotelData) setHotel(hotelData)
+    if (hotelError) console.error('Error cargando hotel:', hotelError)
+    if (hotelData) setHotel(hotelData as Hotel)
   }
 
   const displayAmount = customAmount ? parseFloat(customAmount) : selectedAmount
+  const googleDone = googleOpened || !!(hotel && localStorage.getItem(`tak_google_${hotel.id}`))
+  const needsGoogle = starRating >= 4 && !!hotel?.google_place_id && !googleDone
 
   async function createTip(reviewIdToUpdate?: string | null) {
     if (!displayAmount || !colaborador) return
@@ -176,7 +203,6 @@ export function TipPage({ linkId }: Props) {
         stripe_payment_id: `manual_${Date.now()}`,
         estado: 'completado',
       }
-      console.log('Tip data:', tipData)
 
       const { data: propina, error } = await supabase
         .from('propinas')
@@ -206,32 +232,66 @@ export function TipPage({ linkId }: Props) {
     }
   }
 
-  async function handleOpenGoogleReviews() {
-    if (!hotel?.google_place_id || starRating < 4) return
-    try {
-      if (reviewText.trim()) {
-        await navigator.clipboard.writeText(reviewText)
+  // Abre Google en el mismo gesto del usuario y guarda la reseña sin bloquear
+  function handleOpenGoogleReviews() {
+    if (!hotel?.google_place_id || !colaborador || starRating < 4 || googleDone) return
+    const texto = reviewText.trim()
+    if (texto) copyToClipboard(texto)
+    window.open(googleReviewUrl(hotel.google_place_id), '_blank', 'noopener')
+    setCopiedNotice(!!texto)
+    setGoogleOpened(true)
+    localStorage.setItem(`tak_google_${hotel.id}`, Date.now().toString())
+    localStorage.setItem(`tak_visited_${linkId}`, Date.now().toString())
+
+    pendingSaveRef.current = (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('resenas')
+          .insert({
+            estrellas: starRating,
+            comentario: texto || null,
+            publica: true,
+            hotel_id: colaborador.hotel_id,
+            colaborador_id: colaborador.id,
+          })
+          .select('id').single()
+        if (error) throw error
+        setPendingReviewId(data.id)
+        return data.id as string
+      } catch (err) {
+        console.error('Error saving review:', err)
+        return null
       }
-      localStorage.setItem(`tak_google_${hotel.id}`, Date.now().toString())
-      localStorage.setItem(`tak_visited_${linkId}`, Date.now().toString())
-      setGoogleOpened(true)
-      window.open(`https://search.google.com/local/writereview?placeid=${hotel.google_place_id}`, '_blank')
-    } catch (err) {
-      console.error('Error opening Google Reviews:', err)
+    })()
+  }
+
+  // Inserta la reseña o, si ya se guardó al tocar Google, la actualiza (sin duplicar)
+  async function persistReview(): Promise<string | null> {
+    if (!colaborador) return null
+    const existingId = await pendingSaveRef.current
+    const fields = {
+      estrellas: starRating,
+      comentario: reviewText.trim() || null,
+      publica: googleOpened && starRating >= 4,
     }
+    if (existingId) {
+      const { error } = await supabase.from('resenas').update(fields).eq('id', existingId)
+      if (error) throw error
+      return existingId
+    }
+    const { data, error } = await supabase
+      .from('resenas')
+      .insert({ ...fields, hotel_id: colaborador.hotel_id, colaborador_id: colaborador.id })
+      .select('id').single()
+    if (error) throw error
+    return data.id as string
   }
 
   async function handleReviewWithoutTip() {
     if (!colaborador || starRating === 0) return
     setLoading(true)
     try {
-      await supabase.from('resenas').insert({
-        colaborador_id: colaborador.id,
-        hotel_id: colaborador.hotel_id,
-        estrellas: starRating,
-        comentario: reviewText.trim() || null,
-        publica: starRating >= 4,
-      })
+      await persistReview()
     } catch (err) {
       console.error('Error saving review:', err)
     } finally {
@@ -247,20 +307,8 @@ export function TipPage({ linkId }: Props) {
     if (!colaborador || starRating === 0) return
     setLoading(true)
     try {
-      const { data: resena, error } = await supabase
-        .from('resenas')
-        .insert({
-          colaborador_id: colaborador.id,
-          hotel_id: colaborador.hotel_id,
-          estrellas: starRating,
-          comentario: reviewText.trim() || null,
-          publica: starRating >= 4,
-        })
-        .select().single()
-
-      if (error) throw error
-
-      setPendingReviewId(resena.id)
+      const reviewId = await persistReview()
+      setPendingReviewId(reviewId)
       setCameFromReview(true)
     } catch (err) {
       console.error('Error saving review:', err)
@@ -345,6 +393,9 @@ export function TipPage({ linkId }: Props) {
       setSelectedAmount(0)
       setCustomAmount('')
       setPendingReviewId(null)
+      pendingSaveRef.current = null
+      setGoogleOpened(false)
+      setCopiedNotice(false)
     }
   }
 
@@ -453,9 +504,7 @@ export function TipPage({ linkId }: Props) {
           </div>
         )}
 
-        {step === 'review' && (() => {
-          console.log('Review step render:', { starRating, googleOpened, hotel_id: hotel?.id, google_place_id: hotel?.google_place_id, hasGoogleKey: !!localStorage.getItem(`tak_google_${hotel?.id}`) })
-          return (
+        {step === 'review' && (
           <div>
             <h2 className="tk-gtitle">{t.reviewTitle}</h2>
             {starPicker()}
@@ -465,26 +514,16 @@ export function TipPage({ linkId }: Props) {
               <span className="tk-sr">{t.labelReview}</span>
               <textarea className="tk-textarea" placeholder={t.reviewPlaceholder} value={reviewText} onChange={e => setReviewText(e.target.value)} rows={4} />
             </label>
+            {copiedNotice && <Alert tone="success">{t.googleCopied}</Alert>}
 
             <div className="tk-gactions">
-              {(() => {
-                console.log('Google button condition:', {
-                  starRating,
-                  googleOpened,
-                  google_place_id: hotel?.google_place_id,
-                  tak_google_exists: !!localStorage.getItem(`tak_google_${hotel?.id}`),
-                  hotel_id: hotel?.id
-                })
-                return null
-              })()}
-
-              {starRating >= 4 && !googleOpened && hotel?.google_place_id && !localStorage.getItem(`tak_google_${hotel?.id}`) && (
+              {needsGoogle && (
                 <Btn variant="secondary" icon="external" onClick={handleOpenGoogleReviews} disabled={loading} block>
                   {(t.googleButton as string)}
                 </Btn>
               )}
 
-              {starRating > 0 && (starRating <= 3 || googleOpened || !hotel?.google_place_id || localStorage.getItem(`tak_google_${hotel?.id}`)) && (
+              {starRating > 0 && !needsGoogle && (
                 <>
                   <Btn icon={loading ? undefined : 'tip'} onClick={handleReviewWithTip} disabled={loading} loading={loading} block>
                     {loading ? t.processing : (t.tipButton as string)}
@@ -496,8 +535,7 @@ export function TipPage({ linkId }: Props) {
               )}
             </div>
           </div>
-          )
-        })()}
+        )}
 
         {step === 'tip' && (
           <div>

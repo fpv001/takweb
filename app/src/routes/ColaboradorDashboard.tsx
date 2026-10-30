@@ -4,20 +4,24 @@ import { useAuth } from '@/context/AuthContext'
 import { getInitials, formatMXN } from '@/lib/utils'
 import { exportCSV, formatDateFull } from '@/lib/export'
 import { useRealtimePropinas } from '@/lib/realtime'
+import { fetchResenas, type Resena } from '@/lib/resenas'
 import { Toast } from '@/components/UI'
 import { ColaboradorAvatar } from '@/components/ExpedienteModal'
 import {
   AppLayout, SubpageLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
-  Table, Tr, Td, StatusBadge, Btn, EmptyState, Stars, FullscreenLoader, LiveIndicator,
+  Table, Tr, Td, StatusBadge, Badge, Btn, EmptyState, Stars, FullscreenLoader, LiveIndicator,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
 
 type Colaborador = { id: string; nombre: string; puesto: string | null; foto_url: string | null; hotel_id: string; telefono: string | null; fecha_ingreso: string | null }
-type Hotel = { nombre: string }
+type Hotel = { nombre: string; tipo: string | null }
 type Propina = { id: string; monto_total: number; estado: string; created_at: string }
-type Resena = { id: string; propina_id: string; estrellas: number | null; comentario: string | null; created_at: string }
 type Tab = 'resumen' | 'historial' | 'resenas'
+type FiltroEstrellas = 'todas' | '5' | '4' | 'bajas'
+type FiltroComentario = 'todas' | 'mensaje' | 'calificacion' | 'bajas' | 'altas'
+
+const PAGE_SIZE = 50
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
@@ -49,6 +53,10 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('resumen')
   const [toast, setToast] = useState<string | null>(null)
+  const [filtroEstrellas, setFiltroEstrellas] = useState<FiltroEstrellas>('todas')
+  const [filtroComent, setFiltroComent] = useState<FiltroComentario>('todas')
+  const [visibleCalif, setVisibleCalif] = useState(PAGE_SIZE)
+  const [visibleComent, setVisibleComent] = useState(PAGE_SIZE)
 
   useEffect(() => { load() }, [linkId])
 
@@ -63,17 +71,14 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
     const { data: col, error } = await (useId ? query.eq('id', linkId) : query.eq('link_unico', linkId)).single()
     if (error || !col) { setNotFound(true); setLoading(false); return }
     setColaborador(col as Colaborador)
-    const [{ data: hotelData }, { data: propinasData }, propinasForResenas] = await Promise.all([
-      supabase.from('hotels').select('nombre').eq('id', col.hotel_id).single(),
+    const [{ data: hotelData }, { data: propinasData }, resenasData] = await Promise.all([
+      supabase.from('hotels').select('nombre, tipo').eq('id', col.hotel_id).single(),
       supabase.from('propinas').select('*').eq('colaborador_id', col.id).order('created_at', { ascending: false }),
-      supabase.from('propinas').select('id').eq('colaborador_id', col.id),
+      fetchResenas({ colaborador_id: col.id }),
     ])
     setHotel(hotelData as Hotel)
     setPropinas((propinasData as Propina[]) ?? [])
-    const propIds = (propinasForResenas.data ?? []).map((p: any) => p.id)
-    const filtro = [`colaborador_id.eq.${col.id}`, ...(propIds.length ? [`propina_id.in.(${propIds.join(',')})`] : [])].join(',')
-    const { data: resData } = await supabase.from('resenas').select('*').or(filtro).order('created_at', { ascending: false })
-    setResenas((resData as Resena[]) ?? [])
+    setResenas(await fetchResenas({ colaborador_id: col.id }, ((propinasData as Propina[]) ?? []).map(p => p.id)))
     setLoading(false)
   }
 
@@ -111,7 +116,22 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
 
   if (!colaborador || loading) return <FullscreenLoader />
 
-  const conEstrellas = resenas.filter(r => r.estrellas).length
+  const conEstrellas = resenas.filter(r => r.estrellas !== null).length
+  const conTexto = resenas.filter(r => r.comentario?.trim()).length
+  const califFiltradas = resenas.filter(r => {
+    if (r.estrellas === null) return false
+    if (filtroEstrellas === 'todas') return true
+    if (filtroEstrellas === 'bajas') return r.estrellas <= 3
+    return r.estrellas === Number(filtroEstrellas)
+  })
+  const comentFiltrados = resenas.filter(r => {
+    if (!r.comentario?.trim()) return false
+    if (filtroComent === 'mensaje') return r.estrellas === null
+    if (filtroComent === 'calificacion') return r.estrellas !== null
+    if (filtroComent === 'bajas') return r.estrellas !== null && r.estrellas <= 3
+    if (filtroComent === 'altas') return r.estrellas !== null && r.estrellas >= 4
+    return true
+  })
 
   const mainContent = (
     <PageContent>
@@ -189,26 +209,95 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
       {tab === 'resenas' && (
         <>
           <PageHeader title="Mis reseñas" subtitle="Lo que dicen los huéspedes de ti" />
-          {calificacion > 0 && (
-            <Card>
-              <RatingBreakdown value={calificacion} rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
-            </Card>
-          )}
+          <KpiRow>
+            <KpiCard featured label="Calificación promedio" value={calificacion > 0 ? calificacion.toFixed(1) : '—'} sub="de 5 estrellas" icon="star" />
+            <KpiCard label="Calificaciones" value={String(conEstrellas)} sub="con estrellas" icon="history" />
+            <KpiCard label="Comentarios" value={String(conTexto)} sub="con texto" icon="message" />
+          </KpiRow>
+
           <div style={{ marginTop: 32 }}>
-            <SectionHeader title="Comentarios" />
-            {resenas.filter(r => r.comentario?.trim()).length === 0 ? (
-              <EmptyState icon="message" title="Aún no tienes comentarios" text="Los mensajes que te dejen los huéspedes aparecerán aquí." />
-            ) : (
-              <Table headers={['Calificación', 'Comentario', 'Fecha']}>
-                {resenas.filter(r => r.comentario?.trim()).map(r => (
-                  <Tr key={r.id}>
-                    <Td>{r.estrellas ? <Stars value={r.estrellas} /> : <span className="tk-muted">Solo mensaje</span>}</Td>
-                    <Td wrap>{r.comentario}</Td>
-                    <Td muted nowrap>{formatDateShort(r.created_at)}</Td>
-                  </Tr>
-                ))}
-              </Table>
-            )}
+            <Card title="Calificaciones" meta={`${califFiltradas.length} ${califFiltradas.length === 1 ? 'calificación' : 'calificaciones'}`}>
+              {conEstrellas === 0 ? (
+                <EmptyState inline icon="star" title="Aún no hay calificaciones" text="Aparecerán aquí en cuanto los huéspedes te califiquen con estrellas." />
+              ) : (
+                <>
+                  <RatingBreakdown value={calificacion} rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
+                  <div className="tk-toolbar" style={{ marginTop: 16 }}>
+                    <select className="tk-select" aria-label="Filtrar por estrellas" value={filtroEstrellas} onChange={e => { setFiltroEstrellas(e.target.value as FiltroEstrellas); setVisibleCalif(PAGE_SIZE) }}>
+                      <option value="todas">Todas las estrellas</option>
+                      <option value="5">5 estrellas</option>
+                      <option value="4">4 estrellas</option>
+                      <option value="bajas">3 estrellas o menos</option>
+                    </select>
+                  </div>
+                  {califFiltradas.length === 0 ? (
+                    <EmptyState inline icon="star" title="Ninguna calificación coincide con el filtro" />
+                  ) : (
+                    <>
+                      <Table headers={['Estrellas', 'Estado', 'Fecha']}>
+                        {califFiltradas.slice(0, visibleCalif).map(r => (
+                          <Tr key={r.id}>
+                            <Td><Stars value={r.estrellas ?? 0} /></Td>
+                            <Td><Badge text={r.publica ? 'Enviada a Google' : 'Interna'} tone={r.publica ? 'success' : 'neutral'} /></Td>
+                            <Td muted nowrap>{formatDateShort(r.created_at)}</Td>
+                          </Tr>
+                        ))}
+                      </Table>
+                      {visibleCalif < califFiltradas.length && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                          <Btn variant="secondary" onClick={() => setVisibleCalif(c => c + PAGE_SIZE)}>
+                            Cargar más ({califFiltradas.length - visibleCalif} restantes)
+                          </Btn>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </Card>
+          </div>
+
+          <div style={{ marginTop: 32 }}>
+            <Card title="Comentarios" meta={`${comentFiltrados.length} ${comentFiltrados.length === 1 ? 'comentario' : 'comentarios'}`}>
+              {conTexto === 0 ? (
+                <EmptyState inline icon="message" title="Aún no hay comentarios" text="Los mensajes que te dejen los huéspedes, con o sin calificación, aparecerán aquí." />
+              ) : (
+                <>
+                  <div className="tk-toolbar">
+                    <select className="tk-select" aria-label="Filtrar comentarios por tipo" value={filtroComent} onChange={e => { setFiltroComent(e.target.value as FiltroComentario); setVisibleComent(PAGE_SIZE) }}>
+                      <option value="todas">Todos</option>
+                      <option value="mensaje">Solo mensajes</option>
+                      <option value="calificacion">Con calificación</option>
+                      <option value="bajas">3 estrellas o menos</option>
+                      <option value="altas">4 estrellas o más</option>
+                    </select>
+                  </div>
+                  {comentFiltrados.length === 0 ? (
+                    <EmptyState inline icon="message" title="Ningún comentario coincide con el filtro" />
+                  ) : (
+                    <>
+                      <Table headers={['Calificación', 'Comentario', 'Estado', 'Fecha']}>
+                        {comentFiltrados.slice(0, visibleComent).map(r => (
+                          <Tr key={r.id}>
+                            <Td>{r.estrellas ? <Stars value={r.estrellas} /> : <span className="tk-muted">Solo mensaje</span>}</Td>
+                            <Td wrap>{r.comentario?.trim()}</Td>
+                            <Td><Badge text={r.publica ? 'Enviada a Google' : 'Interna'} tone={r.publica ? 'success' : 'neutral'} /></Td>
+                            <Td muted nowrap>{formatDateShort(r.created_at)}</Td>
+                          </Tr>
+                        ))}
+                      </Table>
+                      {visibleComent < comentFiltrados.length && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                          <Btn variant="secondary" onClick={() => setVisibleComent(c => c + PAGE_SIZE)}>
+                            Cargar más ({comentFiltrados.length - visibleComent} restantes)
+                          </Btn>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </Card>
           </div>
         </>
       )}

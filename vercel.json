@@ -21,6 +21,10 @@
     {
       "source": "/tip/:id",
       "destination": "/api/tip?id=:id"
+    },
+    {
+      "source": "/r/:path*",
+      "destination": "/admin"
     }
   ],
   "functions": {

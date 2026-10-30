@@ -4,24 +4,37 @@ import { useAuth } from '@/context/AuthContext'
 import { getInitials, formatMXN } from '@/lib/utils'
 import { crearUsuario } from '@/lib/edgeFunctions'
 import { exportCSV, formatDateFull } from '@/lib/export'
-import { useRealtimeHotel } from '@/lib/realtime'
+import { useRealtimeHotel, useRealtimeResenas } from '@/lib/realtime'
+import { fetchResenas, type Resena } from '@/lib/resenas'
+import { googleReviewUrl, limpiarPlaceId } from '@/lib/googlePlace'
+import { etiquetasNegocio } from '@/lib/negocio'
+import { TIP_BASE_URL, RESENA_BASE_URL, insertarColaborador, insertarConLink, linkColaborador } from '@/lib/slug'
 import { EquiposPanel } from '@/components/EquiposPanel'
 import { ColaboradorDashboard } from '@/routes/ColaboradorDashboard'
 import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/components/ExpedienteModal'
 import { Toast } from '@/components/UI'
 import {
   AppLayout, SubpageLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
-  Table, Tr, Td, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
+  Table, Tr, Td, StatusBadge, Badge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
   Avatar, Alert, EmptyState, LiveIndicator, Stars, FullscreenLoader,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
 
-type Hotel = { id: string; nombre: string; stripe_api_key: string | null; google_place_id: string | null }
+type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null }
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
 type Propina = { id: string; monto_total: number; estado: string; colaborador_id: string; created_at: string }
-type Resena = { id: string; propina_id: string | null; colaborador_id: string | null; estrellas: number | null; comentario: string | null; created_at: string }
-type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'equipos' | 'leaderboard' | 'configuracion'
+type PuntoResena = { id: string; hotel_id: string; nombre: string; link_unico: string; activo: boolean; created_at: string }
+type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'docks' | 'equipos' | 'leaderboard' | 'configuracion'
+type FiltroEstrellas = 'todas' | '5' | '4' | 'bajas'
+type FiltroComentario = 'todas' | 'mensaje' | 'calificacion' | 'bajas' | 'altas'
+
+const PAGE_SIZE = 50
+
+function promedioDe(rs: Resena[]) {
+  const con = rs.filter(r => r.estrellas !== null)
+  return con.length ? con.reduce((s, r) => s + (r.estrellas ?? 0), 0) / con.length : 0
+}
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
@@ -40,6 +53,7 @@ const NAV = [
   { id: 'equipo', label: 'Mi equipo', icon: 'users' },
   { id: 'propinas', label: 'Propinas', icon: 'tip' },
   { id: 'resenas', label: 'Reseñas', icon: 'star' },
+  { id: 'docks', label: 'Docks', icon: 'card' },
   { id: 'equipos', label: 'Repartos', icon: 'split' },
   { id: 'leaderboard', label: 'Ranking', icon: 'trophy' },
   { id: 'configuracion', label: 'Configuración', icon: 'settings' },
@@ -62,6 +76,19 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<Colaborador | null>(null)
   const [googlePlaceId, setGooglePlaceId] = useState('')
   const [savingGoogle, setSavingGoogle] = useState(false)
+  const [filtroColab, setFiltroColab] = useState('all')
+  const [filtroOrigen, setFiltroOrigen] = useState('todos')
+  const [docks, setDocks] = useState<PuntoResena[]>([])
+  const [dockModal, setDockModal] = useState<PuntoResena | 'new' | null>(null)
+  const [filtroEstrellas, setFiltroEstrellas] = useState<FiltroEstrellas>('todas')
+  const [filtroComent, setFiltroComent] = useState<FiltroComentario>('todas')
+  const [visibleCalif, setVisibleCalif] = useState(PAGE_SIZE)
+  const [visibleComent, setVisibleComent] = useState(PAGE_SIZE)
+
+  function resetPaginas() {
+    setVisibleCalif(PAGE_SIZE)
+    setVisibleComent(PAGE_SIZE)
+  }
 
   useEffect(() => { loadAll() }, [hotelId])
 
@@ -71,6 +98,13 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
     loadAll()
   })
 
+  useRealtimeResenas(hotelId, (resena, esNueva) => {
+    setResenas(prev => prev.some(r => r.id === resena.id)
+      ? prev.map(r => r.id === resena.id ? resena : r)
+      : [resena, ...prev])
+    if (esNueva) setToast('Nueva reseña recibida')
+  })
+
   // Drill-down colaborador
   if (colDetalle) {
     return <ColaboradorDashboard linkId={colDetalle} useId onBack={() => setColDetalle(null)} />
@@ -78,25 +112,27 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: h }, { data: cols }, { data: props }] = await Promise.all([
+    const [{ data: h }, { data: cols }, { data: props }, { data: dk }] = await Promise.all([
       supabase.from('hotels').select('*').eq('id', hotelId).single(),
       supabase.from('colaboradores').select('*').eq('hotel_id', hotelId).order('nombre'),
       supabase.from('propinas').select('*').eq('hotel_id', hotelId).order('created_at', { ascending: false }),
+      supabase.from('puntos_resena').select('*').eq('hotel_id', hotelId).order('created_at'),
     ])
     const hotelData = h as Hotel
     setHotel(hotelData)
     setGooglePlaceId(hotelData?.google_place_id ?? '')
     setColaboradores((cols as Colaborador[]) ?? [])
     setPropinas((props as Propina[]) ?? [])
-    const propIds = ((props as Propina[]) ?? []).map(p => p.id)
-    const filtro = [`hotel_id.eq.${hotelId}`, ...(propIds.length ? [`propina_id.in.(${propIds.join(',')})`] : [])].join(',')
-    const { data: res } = await supabase.from('resenas').select('*').or(filtro).order('created_at', { ascending: false })
-    setResenas((res as Resena[]) ?? [])
+    setDocks((dk as PuntoResena[]) ?? [])
+    const listaPropinas = (props as Propina[]) ?? []
+    const colPorPropina = new Map(listaPropinas.map(p => [p.id, p.colaborador_id]))
+    const res = await fetchResenas({ hotel_id: hotelId }, listaPropinas.map(p => p.id))
+    setResenas(res.map(r => r.colaborador_id || !r.propina_id ? r : { ...r, colaborador_id: colPorPropina.get(r.propina_id) ?? null }))
     setLoading(false)
   }
 
   function exportarPropinas() {
-    exportCSV(`propinas-${hotel?.nombre ?? 'hotel'}`,
+    exportCSV(`propinas-${hotel?.nombre ?? 'negocio'}`,
       ['Colaborador', 'Puesto', 'Monto', 'Estado', 'Fecha'],
       propinas.map(p => {
         const col = colaboradores.find(c => c.id === p.colaborador_id)
@@ -106,28 +142,80 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   }
 
   async function saveGooglePlaceId() {
-    if (!googlePlaceId.trim()) {
-      setToast('Ingresa un Google Place ID válido')
+    const { valor, error: errorLimpieza, advertencia } = limpiarPlaceId(googlePlaceId)
+    if (errorLimpieza) {
+      setToast(errorLimpieza)
       return
     }
     setSavingGoogle(true)
     try {
-      const { error } = await supabase
-        .from('hotels')
-        .update({ google_place_id: googlePlaceId.trim() })
-        .eq('id', hotelId)
+      const { error } = await supabase.rpc('set_hotel_google_place_id', { p_hotel_id: hotelId, p_place_id: valor })
       if (error) {
         setToast('No se pudo guardar: ' + error.message)
-      } else {
-        setToast('Google Place ID guardado')
-        setHotel(hotel ? { ...hotel, google_place_id: googlePlaceId.trim() } : null)
+        return
       }
+      // Vuelve a leer el valor desde Supabase para confirmar que quedó guardado
+      const { data, error: errorLectura } = await supabase.from('hotels').select('google_place_id').eq('id', hotelId).single()
+      if (errorLectura) {
+        setToast('Se envió, pero no pudimos confirmar el guardado: ' + errorLectura.message)
+        return
+      }
+      const guardado = (data?.google_place_id as string | null) || null
+      setHotel(h => h ? { ...h, google_place_id: guardado } : h)
+      setGooglePlaceId(guardado ?? '')
+      if (!guardado) setToast('Google Place ID eliminado')
+      else setToast(advertencia ? `Google Place ID guardado. ${advertencia}` : 'Google Place ID guardado')
     } catch (err) {
       setToast('Ocurrió un error inesperado. Intenta de nuevo.')
     } finally {
       setSavingGoogle(false)
     }
   }
+
+  async function toggleDock(d: PuntoResena) {
+    const { error } = await supabase.from('puntos_resena').update({ activo: !d.activo }).eq('id', d.id)
+    if (error) { setToast('No se pudo cambiar el estado: ' + error.message); return }
+    loadAll()
+  }
+
+  // Tab Reseñas: el filtro de colaborador aplica a indicadores y a las dos tarjetas
+  // Origen: colaboradores (con colaborador_id), docks (con punto_id) o un dock específico
+  const cumpleOrigen = (r: Resena) => {
+    if (filtroOrigen === 'todos') return true
+    if (filtroOrigen === 'colaboradores') return r.colaborador_id !== null
+    if (filtroOrigen === 'docks') return r.punto_id !== null
+    return r.punto_id === filtroOrigen
+  }
+  const resenasTab = resenas.filter(r => (filtroColab === 'all' || r.colaborador_id === filtroColab) && cumpleOrigen(r))
+  const conEstrellasTab = resenasTab.filter(r => r.estrellas !== null)
+  const conTextoTab = resenasTab.filter(r => r.comentario?.trim())
+  const califTab = promedioDe(conEstrellasTab)
+  const califFiltradas = conEstrellasTab.filter(r => {
+    if (filtroEstrellas === 'todas') return true
+    if (filtroEstrellas === 'bajas') return (r.estrellas ?? 0) <= 3
+    return r.estrellas === Number(filtroEstrellas)
+  })
+  const comentFiltrados = conTextoTab.filter(r => {
+    if (filtroComent === 'mensaje') return r.estrellas === null
+    if (filtroComent === 'calificacion') return r.estrellas !== null
+    if (filtroComent === 'bajas') return r.estrellas !== null && r.estrellas <= 3
+    if (filtroComent === 'altas') return r.estrellas !== null && r.estrellas >= 4
+    return true
+  })
+  const porColab = colaboradores.map(c => {
+    const cs = conEstrellasTab.filter(r => r.colaborador_id === c.id)
+    return { id: c.id, nombre: c.nombre, n: cs.length, promedio: promedioDe(cs) }
+  }).filter(c => c.n > 0).sort((a, b) => b.promedio - a.promedio || b.n - a.n)
+  // Las reseñas de dock no tienen colaborador: se identifican por su dock
+  const nombreAutor = (r: Resena) => r.punto_id
+    ? `Dock: ${docks.find(d => d.id === r.punto_id)?.nombre ?? '—'}`
+    : colaboradores.find(c => c.id === r.colaborador_id)?.nombre ?? '—'
+  const porDock = docks.map(d => {
+    const ds = conEstrellasTab.filter(r => r.punto_id === d.id)
+    return { id: d.id, nombre: d.nombre, n: ds.length, promedio: promedioDe(ds) }
+  }).filter(d => d.n > 0).sort((a, b) => b.promedio - a.promedio || b.n - a.n)
+  const previewPlaceId = limpiarPlaceId(googlePlaceId)
+  const et = etiquetasNegocio(hotel?.tipo)
 
   const totalPropinas = propinas.reduce((s, p) => s + p.monto_total, 0)
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -152,18 +240,19 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
 
   if (!hotel && !loading) return (
     <div className="tk-fullscreen">
-      <EmptyState icon="hotel" title="Hotel no encontrado" text="Puede que se haya eliminado o que tu cuenta ya no tenga acceso." action={onBack ? <Btn variant="secondary" icon="back" onClick={onBack}>Volver</Btn> : undefined} />
+      <EmptyState icon="hotel" title={`${et.singularCap} no encontrado`} text="Puede que se haya eliminado o que tu cuenta ya no tenga acceso."action={onBack ? <Btn variant="secondary" icon="back" onClick={onBack}>Volver</Btn> : undefined} />
     </div>
   )
 
   const mainContent = (
     <PageContent>
+      {dockModal !== null && <DockModal punto={dockModal === 'new' ? null : dockModal} hotelId={hotelId} nombreNegocio={hotel?.nombre ?? ''} onClose={() => setDockModal(null)} onSave={() => { setDockModal(null); loadAll() }} />}
       {loading ? <Spinner /> : (
         <>
           {/* ══ RESUMEN ══ */}
           {tab === 'resumen' && (
             <>
-              <PageHeader title={hotel?.nombre ?? ''} subtitle="Así va tu hotel hoy" action={<LiveIndicator label="Propinas en vivo" />} />
+              <PageHeader title={hotel?.nombre ?? ''} subtitle={`Así va tu ${et.singular} hoy`} action={<LiveIndicator label="Propinas en vivo" />} />
               <KpiRow>
                 <KpiCard featured label="Calificación" value={calificacion > 0 ? calificacion.toFixed(1) : '—'} sub={`${resenasConEstrellas.length} reseñas`} icon="star" />
                 <KpiCard label="Este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} propinas`} icon="tip"><KpiSpark values={last7.map(d => d.total)} /></KpiCard>
@@ -236,7 +325,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                 }
               />
               {colaboradores.length === 0 ? (
-                <EmptyState icon="users" title="Aún no hay colaboradores en este hotel" text="Agrega a tu equipo para generar el enlace NFC de cada pulsera." action={<Btn icon="plus" onClick={() => setColModal('new')}>Nuevo colaborador</Btn>} />
+                <EmptyState icon="users" title={`Aún no hay colaboradores en este ${et.singular}`} text="Agrega a tu equipo para generar el enlace NFC de cada pulsera." action={<Btn icon="plus" onClick={() => setColModal('new')}>Nuevo colaborador</Btn>} />
               ) : (
                 <Table headers={['Colaborador', 'Puesto', 'Enlace NFC', 'Propinas', 'Total', 'Estado', '']} numCols={[3, 4]}>
                   {topCols.map(c => (
@@ -269,7 +358,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
           {/* ══ PROPINAS ══ */}
           {tab === 'propinas' && (
             <>
-              <PageHeader title="Propinas" subtitle="Historial de todas las propinas del hotel" action={<Btn variant="secondary" icon="download" onClick={exportarPropinas}>Exportar CSV</Btn>} />
+              <PageHeader title="Propinas" subtitle={`Historial de todas las propinas del ${et.singular}`} action={<Btn variant="secondary" icon="download" onClick={exportarPropinas}>Exportar CSV</Btn>} />
               <KpiRow>
                 <KpiCard featured label="Este mes" value={formatMXN(totalMes)} sub={`${propinasMes.length} transacciones`} icon="tip" />
                 <KpiCard label="Total histórico" value={formatMXN(totalPropinas)} sub={`${propinas.length} propinas`} icon="trend" />
@@ -298,38 +387,180 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
           {/* ══ RESEÑAS ══ */}
           {tab === 'resenas' && (
             <>
-              <PageHeader title="Reseñas" subtitle="Lo que opinan los huéspedes de tu equipo" />
+              <PageHeader
+                title="Reseñas"
+                subtitle="Lo que opinan los huéspedes de tu equipo"
+                action={
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <select className="tk-select" aria-label="Filtrar por origen" value={filtroOrigen} onChange={e => { setFiltroOrigen(e.target.value); resetPaginas() }}>
+                      <option value="todos">Todo el origen</option>
+                      <option value="colaboradores">Colaboradores</option>
+                      <option value="docks">Docks</option>
+                      {docks.map(d => <option key={d.id} value={d.id}>Dock: {d.nombre}</option>)}
+                    </select>
+                    <select className="tk-select" aria-label="Filtrar por colaborador" value={filtroColab} onChange={e => { setFiltroColab(e.target.value); resetPaginas() }}>
+                      <option value="all">Todos los colaboradores</option>
+                      {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    </select>
+                  </div>
+                }
+              />
               <KpiRow>
-                <KpiCard featured label="Calificación promedio" value={calificacion > 0 ? calificacion.toFixed(1) : '—'} sub="de 5 estrellas" icon="star" />
-                <KpiCard label="Total de reseñas" value={String(resenasConEstrellas.length)} icon="history" />
-                <KpiCard label="Con comentario" value={String(resenas.filter(r => r.comentario?.trim()).length)} icon="message" />
+                <KpiCard featured label="Calificación promedio" value={califTab > 0 ? califTab.toFixed(1) : '—'} sub="de 5 estrellas" icon="star" />
+                <KpiCard label="Calificaciones" value={String(conEstrellasTab.length)} sub="con estrellas" icon="history" />
+                <KpiCard label="Comentarios" value={String(conTextoTab.length)} sub="con texto" icon="message" />
               </KpiRow>
-              {resenasConEstrellas.length > 0 && (
-                <Card title="Distribución de calificaciones" meta="Cuántas reseñas recibe cada calificación">
-                  <RatingBreakdown value={calificacion} rows={[5, 4, 3, 2, 1].map(star => ({ star, count: resenas.filter(r => r.estrellas === star).length }))} />
-                </Card>
-              )}
+
               <div style={{ marginTop: 32 }}>
-                <SectionHeader title="Comentarios" />
-                {resenas.filter(r => r.comentario?.trim()).length === 0 ? (
-                  <EmptyState icon="message" title="Aún no hay comentarios de huéspedes" text="Los comentarios que dejen junto con su reseña aparecerán aquí." />
-                ) : (
-                  <Table headers={['Colaborador', 'Calificación', 'Comentario', 'Fecha']}>
-                    {resenas.filter(r => r.comentario?.trim()).map(r => {
-                      const propina = propinas.find(p => p.id === r.propina_id)
-                      const col = colaboradores.find(c => c.id === (r.colaborador_id ?? propina?.colaborador_id))
-                      return (
-                        <Tr key={r.id}>
-                          <Td bold>{col?.nombre ?? '—'}</Td>
-                          <Td>{r.estrellas ? <Stars value={r.estrellas} /> : '—'}</Td>
-                          <Td wrap>{r.comentario}</Td>
-                          <Td muted nowrap>{formatDate(r.created_at)}</Td>
-                        </Tr>
-                      )
-                    })}
-                  </Table>
-                )}
+                <Card title="Calificaciones" meta={`${califFiltradas.length} ${califFiltradas.length === 1 ? 'calificación' : 'calificaciones'}`}>
+                  {conEstrellasTab.length === 0 ? (
+                    <EmptyState inline icon="star" title="Aún no hay calificaciones" text="Aparecerán aquí en cuanto los huéspedes califiquen con estrellas." />
+                  ) : (
+                    <>
+                      <RatingBreakdown value={califTab} rows={[5, 4, 3, 2, 1].map(star => ({ star, count: conEstrellasTab.filter(r => r.estrellas === star).length }))} />
+
+                      <SectionHeader title="Por colaborador" />
+                      <Table headers={['Colaborador', 'Promedio', 'Calificaciones']} numCols={[1, 2]}>
+                        {porColab.map(c => (
+                          <Tr key={c.id}>
+                            <Td bold>{c.nombre}</Td>
+                            <Td right bold>{c.promedio.toFixed(1)}</Td>
+                            <Td right muted>{c.n}</Td>
+                          </Tr>
+                        ))}
+                      </Table>
+
+                      {porDock.length > 0 && (
+                        <>
+                          <SectionHeader title="Por dock" />
+                          <Table headers={['Dock', 'Promedio', 'Calificaciones']} numCols={[1, 2]}>
+                            {porDock.map(d => (
+                              <Tr key={d.id}>
+                                <Td bold>{d.nombre}</Td>
+                                <Td right bold>{d.promedio.toFixed(1)}</Td>
+                                <Td right muted>{d.n}</Td>
+                              </Tr>
+                            ))}
+                          </Table>
+                        </>
+                      )}
+
+                      <SectionHeader title="Calificaciones recientes" />
+                      <div className="tk-toolbar">
+                        <select className="tk-select" aria-label="Filtrar por estrellas" value={filtroEstrellas} onChange={e => { setFiltroEstrellas(e.target.value as FiltroEstrellas); setVisibleCalif(PAGE_SIZE) }}>
+                          <option value="todas">Todas las estrellas</option>
+                          <option value="5">5 estrellas</option>
+                          <option value="4">4 estrellas</option>
+                          <option value="bajas">3 estrellas o menos</option>
+                        </select>
+                      </div>
+                      {califFiltradas.length === 0 ? (
+                        <EmptyState inline icon="star" title="Ninguna calificación coincide con el filtro" />
+                      ) : (
+                        <>
+                          <Table headers={['Colaborador', 'Estrellas', 'Estado', 'Fecha']}>
+                            {califFiltradas.slice(0, visibleCalif).map(r => (
+                              <Tr key={r.id}>
+                                <Td bold>{nombreAutor(r)}</Td>
+                                <Td><Stars value={r.estrellas ?? 0} /></Td>
+                                <Td><Badge text={r.publica ? 'Enviada a Google' : 'Interna'} tone={r.publica ? 'success' : 'neutral'} /></Td>
+                                <Td muted nowrap>{formatDate(r.created_at)}</Td>
+                              </Tr>
+                            ))}
+                          </Table>
+                          {visibleCalif < califFiltradas.length && (
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                              <Btn variant="secondary" onClick={() => setVisibleCalif(c => c + PAGE_SIZE)}>
+                                Cargar más ({califFiltradas.length - visibleCalif} restantes)
+                              </Btn>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </Card>
               </div>
+
+              <div style={{ marginTop: 32 }}>
+                <Card title="Comentarios" meta={`${comentFiltrados.length} ${comentFiltrados.length === 1 ? 'comentario' : 'comentarios'}`}>
+                  {conTextoTab.length === 0 ? (
+                    <EmptyState inline icon="message" title="Aún no hay comentarios" text="Los comentarios que dejen tus huéspedes, con o sin calificación, aparecerán aquí." />
+                  ) : (
+                    <>
+                      <div className="tk-toolbar">
+                        <select className="tk-select" aria-label="Filtrar comentarios por tipo" value={filtroComent} onChange={e => { setFiltroComent(e.target.value as FiltroComentario); setVisibleComent(PAGE_SIZE) }}>
+                          <option value="todas">Todos</option>
+                          <option value="mensaje">Solo mensajes</option>
+                          <option value="calificacion">Con calificación</option>
+                          <option value="bajas">3 estrellas o menos</option>
+                          <option value="altas">4 estrellas o más</option>
+                        </select>
+                      </div>
+                      {comentFiltrados.length === 0 ? (
+                        <EmptyState inline icon="message" title="Ningún comentario coincide con el filtro" />
+                      ) : (
+                        <>
+                          <Table headers={['Colaborador', 'Comentario', 'Calificación', 'Estado', 'Fecha']}>
+                            {comentFiltrados.slice(0, visibleComent).map(r => (
+                              <Tr key={r.id}>
+                                <Td bold>{nombreAutor(r)}</Td>
+                                <Td wrap>{r.comentario?.trim()}</Td>
+                                <Td>{r.estrellas ? <Stars value={r.estrellas} /> : <span className="tk-muted">Solo mensaje</span>}</Td>
+                                <Td><Badge text={r.publica ? 'Enviada a Google' : 'Interna'} tone={r.publica ? 'success' : 'neutral'} /></Td>
+                                <Td muted nowrap>{formatDate(r.created_at)}</Td>
+                              </Tr>
+                            ))}
+                          </Table>
+                          {visibleComent < comentFiltrados.length && (
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                              <Btn variant="secondary" onClick={() => setVisibleComent(c => c + PAGE_SIZE)}>
+                                Cargar más ({comentFiltrados.length - visibleComent} restantes)
+                              </Btn>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </Card>
+              </div>
+            </>
+          )}
+
+          {/* ══ DOCKS ══ */}
+          {tab === 'docks' && (
+            <>
+              <PageHeader
+                title="Docks de reseñas"
+                subtitle={`Placas NFC para que los huéspedes dejen una reseña en mesa, barra o recepción de tu ${et.singular}. Sin propina ni colaborador.`}
+                action={<Btn icon="plus" onClick={() => setDockModal('new')}>Nuevo dock</Btn>}
+              />
+              {docks.length === 0 ? (
+                <EmptyState icon="card" title="Aún no tienes docks" text="Crea uno por mesa, barra o recepción y programa su placa NFC con el enlace." action={<Btn icon="plus" onClick={() => setDockModal('new')}>Nuevo dock</Btn>} />
+              ) : (
+                <Table headers={['Dock', 'Enlace', 'Estado', 'Reseñas', 'Promedio', '']} numCols={[3, 4]}>
+                  {docks.map(d => {
+                    const rs = resenas.filter(r => r.punto_id === d.id)
+                    const prom = promedioDe(rs)
+                    return (
+                      <Tr key={d.id}>
+                        <Td bold>{d.nombre}</Td>
+                        <Td><CopyUrl url={`${RESENA_BASE_URL}/${d.link_unico}`} /></Td>
+                        <Td><ActiveBadge activo={d.activo} /></Td>
+                        <Td right muted>{rs.length}</Td>
+                        <Td right bold>{prom > 0 ? prom.toFixed(1) : '—'}</Td>
+                        <Td>
+                          <div className="tk-row-actions">
+                            <Btn small variant="secondary" onClick={() => toggleDock(d)}>{d.activo ? 'Desactivar' : 'Activar'}</Btn>
+                            <IconBtn small icon="edit" label={`Editar ${d.nombre}`} onClick={() => setDockModal(d)} />
+                          </div>
+                        </Td>
+                      </Tr>
+                    )
+                  })}
+                </Table>
+              )}
             </>
           )}
 
@@ -345,16 +576,12 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
           {/* ══ LEADERBOARD ══ */}
           {tab === 'leaderboard' && (() => {
             const ranking = colaboradores.map(c => {
-              const propIds = propinas.filter(p => p.colaborador_id === c.id).map(p => p.id)
-              const resCol = resenas.filter(r => (r.colaborador_id === c.id || (!!r.propina_id && propIds.includes(r.propina_id))) && r.estrellas)
+              const resCol = resenas.filter(r => r.colaborador_id === c.id && r.estrellas)
               const promedio = resCol.length ? resCol.reduce((s, r) => s + (r.estrellas ?? 0), 0) / resCol.length : 0
               const totalP = propinas.filter(p => p.colaborador_id === c.id).reduce((s, p) => s + p.monto_total, 0)
               return { ...c, promedio, totalResenas: resCol.length, totalP }
             }).filter(c => c.totalResenas > 0).sort((a, b) => b.promedio - a.promedio || b.totalResenas - a.totalResenas)
-            const sinResenas = colaboradores.filter(c => {
-              const propIds = propinas.filter(p => p.colaborador_id === c.id).map(p => p.id)
-              return resenas.filter(r => (r.colaborador_id === c.id || (!!r.propina_id && propIds.includes(r.propina_id))) && r.estrellas).length === 0
-            })
+            const sinResenas = colaboradores.filter(c => !resenas.some(r => r.colaborador_id === c.id && r.estrellas))
             return (
               <>
                 <PageHeader title="Ranking del equipo" subtitle="Ordenado por calificación promedio de las reseñas" />
@@ -414,15 +641,33 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
           {/* ══ CONFIGURACIÓN ══ */}
           {tab === 'configuracion' && (
             <>
-              <PageHeader title="Configuración" subtitle="Ajustes de tu hotel" />
-              <Card title="Reseñas en Google" meta="Las reseñas de 4 y 5 estrellas pueden publicarse en el perfil de Google de tu hotel.">
+              <PageHeader title="Configuración" subtitle={`Ajustes de tu ${et.singular}`} />
+              <Card title="Reseñas en Google" meta={`Las reseñas de 4 y 5 estrellas pueden publicarse en el perfil de Google de tu ${et.singular}.`}>
                 <div style={{ maxWidth: 560, marginTop: 8 }}>
-                  <FormField label="Google Place ID" hint="Encuéntralo en Google Maps. Es necesario para enviar a los huéspedes a dejar su reseña en Google.">
+                  <div style={{ marginBottom: 12 }}>
+                    <Badge text={hotel?.google_place_id ? 'Google conectado' : 'Sin configurar'} tone={hotel?.google_place_id ? 'success' : 'neutral'} />
+                  </div>
+                  <FormField label="Google Place ID" hint="Pega el Place ID (ChIJ…) o el enlace completo de Google. Déjalo vacío y guarda para desconectar Google.">
                     <Input value={googlePlaceId} onChange={setGooglePlaceId} placeholder="ChIJ…" />
                   </FormField>
-                  <Btn onClick={saveGooglePlaceId} disabled={savingGoogle} loading={savingGoogle}>
-                    {savingGoogle ? 'Guardando…' : 'Guardar'}
-                  </Btn>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Btn onClick={saveGooglePlaceId} disabled={savingGoogle} loading={savingGoogle}>
+                      {savingGoogle ? 'Guardando…' : 'Guardar'}
+                    </Btn>
+                    <Btn
+                      variant="secondary"
+                      icon="external"
+                      disabled={!previewPlaceId.valor || !!previewPlaceId.error}
+                      onClick={() => window.open(googleReviewUrl(previewPlaceId.valor), '_blank', 'noopener')}
+                    >
+                      Probar enlace
+                    </Btn>
+                  </div>
+                  <p style={{ marginTop: 12, font: 'var(--t-small)' }}>
+                    <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder" target="_blank" rel="noopener noreferrer">
+                      ¿Dónde encuentro mi Place ID?
+                    </a>
+                  </p>
                 </div>
               </Card>
             </>
@@ -438,14 +683,14 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
         <SubpageLayout
           onBack={onBack}
           title={hotel?.nombre ?? ''}
-          meta="Panel del hotel"
+          meta={et.panelTitulo}
           avatar={<Avatar name={hotel?.nombre ?? '?'} size={36} />}
           tabs={NAV} activeTab={tab} onTabChange={id => setTab(id as Tab)}
         >
           {mainContent}
         </SubpageLayout>
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-        {colModal !== null && <HotelColModal colaborador={colModal === 'new' ? null : colModal} hotelId={hotelId} onClose={() => setColModal(null)} onSave={() => { setColModal(null); loadAll() }} />}
+        {colModal !== null && <HotelColModal colaborador={colModal === 'new' ? null : colModal} hotelId={hotelId} nombreNegocio={hotel?.nombre ?? ''} onClose={() => setColModal(null)} onSave={() => { setColModal(null); loadAll() }} />}
         {usuarioModal && <CrearAccesoModal hotelId={hotelId} colaboradores={colaboradores} onClose={() => setUsuarioModal(false)} onSave={() => setUsuarioModal(false)} />}
         {expediente && <ExpedienteModal colaborador={expediente as ColaboradorCompleto} onClose={() => setExpediente(null)} onSave={() => { setExpediente(null); loadAll() }} />}
         {deleteTarget && <ConfirmDeleteColaborador colaborador={deleteTarget} propinasCount={propinas.filter(p => p.colaborador_id === deleteTarget.id).length} onClose={() => setDeleteTarget(null)} onDeleted={() => { setDeleteTarget(null); loadAll() }} />}
@@ -454,10 +699,10 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   }
 
   return (
-    <AppLayout navItems={NAV} activeTab={tab} onTabChange={id => setTab(id as Tab)} title={hotel?.nombre ?? 'Mi hotel'} subtitle="Panel de gerencia">
+    <AppLayout navItems={NAV} activeTab={tab} onTabChange={id => setTab(id as Tab)} title={hotel?.nombre ?? `Mi ${et.singular}`} subtitle={et.panelTitulo}>
       {mainContent}
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-      {colModal !== null && <HotelColModal colaborador={colModal === 'new' ? null : colModal} hotelId={hotelId} onClose={() => setColModal(null)} onSave={() => { setColModal(null); loadAll() }} />}
+      {colModal !== null && <HotelColModal colaborador={colModal === 'new' ? null : colModal} hotelId={hotelId} nombreNegocio={hotel?.nombre ?? ''} onClose={() => setColModal(null)} onSave={() => { setColModal(null); loadAll() }} />}
       {usuarioModal && <CrearAccesoModal hotelId={hotelId} colaboradores={colaboradores} onClose={() => setUsuarioModal(false)} onSave={() => setUsuarioModal(false)} />}
 
       {expediente && <ExpedienteModal colaborador={expediente as ColaboradorCompleto} onClose={() => setExpediente(null)} onSave={() => { setExpediente(null); loadAll() }} />}
@@ -466,33 +711,49 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   )
 }
 
-function HotelColModal({ colaborador, hotelId, onClose, onSave }: { colaborador: Colaborador | null; hotelId: string; onClose: () => void; onSave: () => void }) {
+function HotelColModal({ colaborador, hotelId, nombreNegocio, onClose, onSave }: { colaborador: Colaborador | null; hotelId: string; nombreNegocio: string; onClose: () => void; onSave: () => void }) {
   const [nombre, setNombre] = useState(colaborador?.nombre ?? '')
   const [puesto, setPuesto] = useState(colaborador?.puesto ?? '')
   const [link, setLink] = useState(colaborador?.link_unico ?? '')
+  const [linkManual, setLinkManual] = useState(false)
   const [activo, setActivo] = useState(colaborador?.activo ?? true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }
+
+  // Mientras el enlace no se edite a mano, se genera con nombre + negocio
+  function handleNombre(v: string) {
+    setNombre(v)
+    if (!colaborador && !linkManual) setLink(linkColaborador(v, nombreNegocio))
+  }
+
   async function handleSave() {
-    if (!nombre.trim() || !link.trim()) { setError('Nombre y link son requeridos'); return }
+    if (!nombre.trim() || (!colaborador && !link.trim())) { setError('Nombre y link son requeridos'); return }
     setSaving(true); setError('')
     try {
-      const { error: err } = colaborador
-        ? await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, link_unico: link.trim(), activo }).eq('id', colaborador.id)
-        : await supabase.from('colaboradores').insert({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, link_unico: link.trim(), activo: true })
-      if (err) {
-        setError(err.code === '23505' ? 'Ya existe un colaborador con ese link único' : err.message)
-        return
+      if (colaborador) {
+        // El enlace de un colaborador existente no cambia: la pulsera NFC ya programada depende de él
+        const { error: err } = await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, activo }).eq('id', colaborador.id)
+        if (err) { setError(err.message); return }
+      } else {
+        const res = await insertarColaborador({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo: true }, link.trim(), linkManual)
+        if (res.error) { setError(res.error); return }
       }
       onSave()
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
   }
   return (
     <Modal title={colaborador ? 'Editar colaborador' : 'Nuevo colaborador'} onClose={onClose}>
-      <FormField label="Nombre completo"><Input value={nombre} onChange={v => { setNombre(v); if (!colaborador) setLink(slugify(v)) }} placeholder="Jorge Martínez" /></FormField>
+      <FormField label="Nombre completo"><Input value={nombre} onChange={handleNombre} placeholder="Jorge Martínez" /></FormField>
       <FormField label="Puesto"><Input value={puesto} onChange={setPuesto} placeholder="Botones, Spa…" /></FormField>
-      <FormField label="Enlace único NFC" hint={`Dirección de propina: ${TIP_BASE_URL}/${link || '…'}`}><Input value={link} onChange={setLink} placeholder="jorge-martinez" /></FormField>
+      {colaborador ? (
+        <FormField label="Enlace único NFC" hint="Cambiar este enlace deja de funcionar la pulsera NFC ya programada">
+          <span className="tk-link"><span className="tk-link__path">{`${TIP_BASE_URL}/${colaborador.link_unico}`}</span></span>
+        </FormField>
+      ) : (
+        <FormField label="Enlace único NFC" hint={`Se genera con nombre y negocio; puedes editarlo. Dirección de propina: ${TIP_BASE_URL}/${link || '…'}`}>
+          <Input value={link} onChange={v => { setLink(v); setLinkManual(true) }} placeholder="jorge-martinez-nombre-negocio" />
+        </FormField>
+      )}
       {colaborador && <FormField label="Estado"><Select value={activo ? 'activo' : 'inactivo'} onChange={v => setActivo(v === 'activo')}><option value="activo">Activo</option><option value="inactivo">Inactivo</option></Select></FormField>}
       {error && <Alert>{error}</Alert>}
       <ModalActions>
@@ -578,9 +839,76 @@ function CrearAccesoModal({ hotelId, colaboradores, onClose, onSave }: { hotelId
   )
 }
 
-// ─── CopyLink ─────────────────────────────────────────────────────────────────
+function DockModal({ punto, hotelId, nombreNegocio, onClose, onSave }: { punto: PuntoResena | null; hotelId: string; nombreNegocio: string; onClose: () => void; onSave: () => void }) {
+  const [nombre, setNombre] = useState(punto?.nombre ?? '')
+  const [link, setLink] = useState(punto?.link_unico ?? '')
+  const [linkManual, setLinkManual] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-const TIP_BASE_URL = `${import.meta.env.VITE_WEB_URL ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}/tip`
+  // Mientras el enlace no se edite a mano, se genera con nombre del dock + negocio
+  function handleNombre(v: string) {
+    setNombre(v)
+    if (!punto && !linkManual) setLink(linkColaborador(v, nombreNegocio))
+  }
+
+  async function handleSave() {
+    if (!nombre.trim() || (!punto && !link.trim())) { setError('Nombre y enlace son requeridos'); return }
+    setSaving(true); setError('')
+    try {
+      if (punto) {
+        // El enlace de un dock existente no cambia: la placa NFC ya programada depende de él
+        const { error: err } = await supabase.from('puntos_resena').update({ nombre: nombre.trim() }).eq('id', punto.id)
+        if (err) { setError(err.message); return }
+      } else {
+        const res = await insertarConLink('puntos_resena', { nombre: nombre.trim(), hotel_id: hotelId, activo: true }, link.trim(), linkManual, 'Ya existe un dock con ese enlace')
+        if (res.error) { setError(res.error); return }
+      }
+      onSave()
+    } catch (e: any) { setError(e.message) } finally { setSaving(false) }
+  }
+
+  return (
+    <Modal title={punto ? 'Editar dock' : 'Nuevo dock'} onClose={onClose}>
+      <FormField label="Nombre del dock" hint="Ej. Mesa 4, Barra, Recepción">
+        <Input value={nombre} onChange={handleNombre} placeholder="Mesa 1" />
+      </FormField>
+      {punto ? (
+        <FormField label="Enlace" hint="Cambiar este enlace deja de funcionar la placa NFC ya programada">
+          <span className="tk-link"><span className="tk-link__path">{`${RESENA_BASE_URL}/${punto.link_unico}`}</span></span>
+        </FormField>
+      ) : (
+        <FormField label="Enlace" hint={`Se genera con el nombre del dock y el negocio; puedes editarlo. Dirección: ${RESENA_BASE_URL}/${link || '…'}`}>
+          <Input value={link} onChange={v => { setLink(v); setLinkManual(true) }} placeholder="mesa-1-nombre-negocio" />
+        </FormField>
+      )}
+      {error && <Alert>{error}</Alert>}
+      <ModalActions>
+        <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
+        <Btn onClick={handleSave} disabled={saving} loading={saving}>{saving ? 'Guardando…' : 'Guardar'}</Btn>
+      </ModalActions>
+    </Modal>
+  )
+}
+
+function CopyUrl({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <span className="tk-link">
+      <span className="tk-link__path" title={url}>{url.replace(/^https?:\/\//, '')}</span>
+      <IconBtn small icon={copied ? 'check' : 'copy'} label={copied ? 'Enlace copiado' : 'Copiar enlace'} onClick={handleCopy} className={copied ? 'is-done' : undefined} />
+    </span>
+  )
+}
+
+// ─── CopyLink ─────────────────────────────────────────────────────────────────
 
 function CopyLink({ linkUnico }: { linkUnico: string }) {
   const [copied, setCopied] = useState(false)

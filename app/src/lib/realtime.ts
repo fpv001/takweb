@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
+import type { Resena } from '@/lib/resenas'
 
 export type Notificacion = {
   id: string
@@ -32,6 +33,34 @@ export function useRealtimePropinas(colaboradorId: string | null, onNuevaPropina
 
     return () => { supabase.removeChannel(channel) }
   }, [colaboradorId])
+}
+
+// Hook para escuchar reseñas nuevas o actualizadas de un hotel (para gerente)
+export function useRealtimeResenas(
+  hotelId: string | null,
+  onCambio: (resena: Resena, esNueva: boolean) => void,
+) {
+  useEffect(() => {
+    if (!hotelId) return
+
+    const channel = supabase
+      .channel(`resenas-${hotelId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'resenas',
+          filter: `hotel_id=eq.${hotelId}`,
+        },
+        (payload) => {
+          onCambio(payload.new as Resena, payload.eventType === 'INSERT')
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [hotelId])
 }
 
 // Hook para escuchar propinas nuevas de un hotel completo (para gerente)
