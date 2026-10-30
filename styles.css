@@ -227,7 +227,6 @@ h2 em{font-style:normal;color:var(--coral-dark)}
 .consent input{width:20px;height:20px;accent-color:var(--coral)}
 .consent a{color:var(--coral)}
 .form-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px 20px;margin-top:6px}
-.demo-note{font-size:14px;opacity:.8}
 .form-status:empty{display:none}
 .form-status{font-weight:600;color:var(--coral)}
 .field-trap{position:absolute;left:-9999px}

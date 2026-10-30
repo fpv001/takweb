@@ -244,7 +244,7 @@ document.querySelectorAll('.legal-dialog').forEach((dialog) => {
   dialog.addEventListener('close', () => dialogOrigin?.focus());
 });
 
-// Formulario de demostración.
+// Formulario de contacto: registra al interesado en el panel de Atlas.
 const form = document.querySelector('.contact-form');
 const status = document.querySelector('.form-status');
 const submitButton = form.querySelector('button[type="submit"]');
@@ -288,10 +288,21 @@ form.addEventListener('submit', (event) => {
   // El campo trampa sólo lo completan bots: se descarta sin procesar.
   if (form.elements.website.value) return;
   submitButton.disabled = true;
-  submitButton.textContent = 'Preparando vista…';
-  window.setTimeout(() => {
-    submitButton.disabled = false;
-    submitButton.textContent = 'Quiero conocer tak!';
-    status.textContent = 'Vista completada. Tus datos no fueron enviados.';
-  }, 650);
+  submitButton.textContent = 'Enviando…';
+  const { name, business, type, email, message } = form.elements;
+  fetch('/api/lead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre: name.value, negocio: business.value, tipo: type.value, correo: email.value, mensaje: message.value }),
+  })
+    .then((r) => {
+      if (!r.ok) throw new Error();
+      form.reset();
+      status.textContent = '¡Gracias! Te contactaremos muy pronto.';
+    })
+    .catch(() => { status.textContent = 'No pudimos enviar tus datos. Inténtalo de nuevo en un momento.'; })
+    .finally(() => {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Quiero conocer tak!';
+    });
 });

@@ -12,7 +12,7 @@ import { TIP_BASE_URL, insertarColaborador, linkColaborador } from '@/lib/slug'
 import {
   AppLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, Badge, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
-  Avatar, Alert, EmptyState,
+  Avatar, Alert, EmptyState, type Tone,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import { TrendBars, KpiSpark } from '@/components/Stats'
@@ -22,7 +22,16 @@ import { TrendBars, KpiSpark } from '@/components/Stats'
 type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null; created_at: string }
 type Colaborador = { id: string; nombre: string; puesto: string | null; hotel_id: string; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null }
 type Propina = { id: string; monto_total: number; estado: string; hotel_id: string; colaborador_id: string; created_at: string }
-type Tab = 'resumen' | 'hoteles' | 'colaboradores' | 'propinas'
+type Lead = { id: string; nombre: string; negocio: string; tipo: string; correo: string; mensaje: string; estado: string; notas: string | null; created_at: string }
+type Tab = 'resumen' | 'interesados' | 'hoteles' | 'colaboradores' | 'propinas'
+
+const ESTADOS_LEAD: Record<string, { label: string; tone: Tone }> = {
+  nuevo: { label: 'Nuevo', tone: 'brand' },
+  contactado: { label: 'Contactado', tone: 'info' },
+  en_conversacion: { label: 'En conversación', tone: 'warning' },
+  cliente: { label: 'Cliente', tone: 'success' },
+  descartado: { label: 'Descartado', tone: 'neutral' },
+}
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
@@ -38,6 +47,7 @@ function timeAgo(iso: string) {
 
 const NAV = [
   { id: 'resumen', label: 'Resumen', icon: 'resumen' },
+  { id: 'interesados', label: 'Interesados', icon: 'bell' },
   { id: 'hoteles', label: 'Negocios', icon: 'hotel' },
   { id: 'colaboradores', label: 'Colaboradores', icon: 'users' },
   { id: 'propinas', label: 'Propinas', icon: 'tip' },
@@ -50,6 +60,9 @@ export function AtlasAdmin() {
   const [hotels, setHotels] = useState<Hotel[]>([])
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([])
   const [propinas, setPropinas] = useState<Propina[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [leadDetalle, setLeadDetalle] = useState<Lead | null>(null)
+  const [estadoFilter, setEstadoFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [hotelFilter, setHotelFilter] = useState('all')
@@ -78,6 +91,14 @@ export function AtlasAdmin() {
     )
   }
 
+  function exportarLeads() {
+    exportCSV(
+      'interesados-tak',
+      ['Nombre', 'Negocio', 'Tipo', 'Correo', 'Mensaje', 'Estado', 'Notas', 'Fecha'],
+      leads.map(l => [l.nombre, l.negocio, l.tipo, l.correo, l.mensaje, ESTADOS_LEAD[l.estado]?.label ?? l.estado, l.notas ?? '', formatDateFull(l.created_at)])
+    )
+  }
+
   function exportarColaboradores() {
     exportCSV(
       'colaboradores-atlas',
@@ -91,14 +112,16 @@ export function AtlasAdmin() {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: h }, { data: c }, { data: p }] = await Promise.all([
+    const [{ data: h }, { data: c }, { data: p }, { data: l }] = await Promise.all([
       supabase.from('hotels').select('*').order('created_at', { ascending: false }),
       supabase.from('colaboradores').select('*').order('created_at', { ascending: false }),
       supabase.from('propinas').select('*').order('created_at', { ascending: false }),
+      supabase.from('leads').select('*').order('created_at', { ascending: false }),
     ])
     setHotels((h as Hotel[]) ?? [])
     setColaboradores((c as Colaborador[]) ?? [])
     setPropinas((p as Propina[]) ?? [])
+    setLeads((l as Lead[]) ?? [])
     setLoading(false)
   }
 
@@ -119,10 +142,11 @@ export function AtlasAdmin() {
     return matchH && matchS
   })
 
+  const filteredLeads = leads.filter(l => estadoFilter === 'all' || l.estado === estadoFilter)
   const filteredProps = propinas.filter(p => hotelFilter === 'all' || p.hotel_id === hotelFilter)
 
   return (
-    <AppLayout navItems={NAV} activeTab={tab} onTabChange={id => { setTab(id as Tab); setSearch(''); setHotelFilter('all') }} title="Administración" subtitle="Operación tak!">
+    <AppLayout navItems={NAV} activeTab={tab} onTabChange={id => { setTab(id as Tab); setSearch(''); setHotelFilter('all'); setEstadoFilter('all') }} title="Administración" subtitle="Operación tak!">
 
       <PageContent>
         {loading ? <Spinner /> : (
@@ -301,6 +325,40 @@ export function AtlasAdmin() {
               </>
             )}
 
+            {/* ══ INTERESADOS ══ */}
+            {tab === 'interesados' && (
+              <>
+                <PageHeader title="Interesados" subtitle="Solicitudes del formulario de contacto" action={<Btn variant="secondary" icon="download" onClick={exportarLeads} disabled={leads.length === 0}>Exportar CSV</Btn>} />
+                <KpiRow>
+                  <KpiCard featured label="Nuevos" value={String(leads.filter(l => l.estado === 'nuevo').length)} sub="sin contactar" icon="bell" />
+                  <KpiCard label="En seguimiento" value={String(leads.filter(l => l.estado === 'contactado' || l.estado === 'en_conversacion').length)} icon="message" />
+                  <KpiCard label="Clientes" value={String(leads.filter(l => l.estado === 'cliente').length)} icon="success" />
+                  <KpiCard label="Total" value={String(leads.length)} sub="solicitudes" icon="history" />
+                </KpiRow>
+                <div className="tk-toolbar">
+                  <select className="tk-select" aria-label="Filtrar por estado" value={estadoFilter} onChange={e => setEstadoFilter(e.target.value)}>
+                    <option value="all">Todos los estados</option>
+                    {Object.entries(ESTADOS_LEAD).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  </select>
+                </div>
+                {filteredLeads.length === 0 ? (
+                  <EmptyState icon="bell" title={leads.length ? 'Ningún interesado con este estado' : 'Aún no hay interesados'} text={leads.length ? undefined : 'Las solicitudes del formulario de contacto de la página aparecerán aquí.'} />
+                ) : (
+                  <Table headers={['Nombre', 'Negocio', 'Correo', 'Estado', 'Fecha']}>
+                    {filteredLeads.map(l => (
+                      <Tr key={l.id} onClick={() => setLeadDetalle(l)} label={`Ver solicitud de ${l.nombre}`}>
+                        <Td bold>{l.nombre}</Td>
+                        <Td muted>{l.negocio} · {l.tipo}</Td>
+                        <Td muted>{l.correo}</Td>
+                        <Td><Badge text={ESTADOS_LEAD[l.estado]?.label ?? l.estado} tone={ESTADOS_LEAD[l.estado]?.tone ?? 'neutral'} /></Td>
+                        <Td muted nowrap>{timeAgo(l.created_at)}</Td>
+                      </Tr>
+                    ))}
+                  </Table>
+                )}
+              </>
+            )}
+
             {/* ══ PROPINAS ══ */}
             {tab === 'propinas' && (
               <>
@@ -366,8 +424,55 @@ export function AtlasAdmin() {
         />
       )}
 
+      {leadDetalle && <LeadModal lead={leadDetalle} onClose={() => setLeadDetalle(null)} onSave={() => { setLeadDetalle(null); loadAll() }} />}
       {expediente && <ExpedienteModal colaborador={expediente as ColaboradorCompleto} onClose={() => setExpediente(null)} onSave={() => { setExpediente(null); loadAll() }} />}
     </AppLayout>
+  )
+}
+
+// ─── Lead Modal ───────────────────────────────────────────────────────────────
+
+function LeadModal({ lead, onClose, onSave }: { lead: Lead; onClose: () => void; onSave: () => void }) {
+  const [estado, setEstado] = useState(lead.estado)
+  const [notas, setNotas] = useState(lead.notas ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave() {
+    setSaving(true)
+    setError('')
+    const { error: errorUpdate } = await supabase.from('leads').update({ estado, notas: notas.trim() || null }).eq('id', lead.id)
+    setSaving(false)
+    if (errorUpdate) { setError(errorUpdate.message); return }
+    onSave()
+  }
+
+  return (
+    <Modal title={lead.nombre} onClose={onClose}>
+      <p className="tk-muted" style={{ marginBottom: 16 }}>{lead.negocio} · {lead.tipo} · {formatDate(lead.created_at)}</p>
+      <FormField label="Correo">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>{lead.correo}</span>
+          <Btn small variant="secondary" icon="external" onClick={() => window.open(`mailto:${lead.correo}?subject=${encodeURIComponent('tak! para ' + lead.negocio)}`)}>Escribir</Btn>
+        </div>
+      </FormField>
+      <FormField label="Mensaje">
+        <p style={{ whiteSpace: 'pre-wrap' }}>{lead.mensaje}</p>
+      </FormField>
+      <FormField label="Estado">
+        <Select value={estado} onChange={setEstado}>
+          {Object.entries(ESTADOS_LEAD).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </Select>
+      </FormField>
+      <FormField label="Notas internas" hint="Solo las ve el equipo de tak!.">
+        <textarea className="tk-textarea" rows={3} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Ej. Llamada agendada el martes." />
+      </FormField>
+      {error && <Alert>{error}</Alert>}
+      <ModalActions>
+        <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
+        <Btn onClick={handleSave} disabled={saving} loading={saving}>{saving ? 'Guardando…' : 'Guardar'}</Btn>
+      </ModalActions>
+    </Modal>
   )
 }
 
