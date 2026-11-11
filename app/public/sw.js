@@ -1,5 +1,6 @@
-const CACHE_NAME = 'tak-app-v3'
-const STATIC_ASSETS = ['/admin/', '/admin/index.html']
+// '/admin/index.html' responde 308 en producción: iOS rechaza respuestas redirigidas servidas por el SW
+const CACHE_NAME = 'tak-app-v4'
+const STATIC_ASSETS = ['/admin/']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -26,7 +27,7 @@ self.addEventListener('fetch', (event) => {
     fetch(request)
       .then((res) => {
         // Only cache successful, non-partial responses
-        if (res.ok && res.status === 200 && res.type === 'basic') {
+        if (res.ok && res.status === 200 && res.type === 'basic' && !res.redirected) {
           const clone = res.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
         }
@@ -36,7 +37,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(request)
         if (cached) return cached
         // SPA fallback: serve the app shell for navigations when offline
-        if (request.mode === 'navigate') return caches.match('/admin/index.html')
+        if (request.mode === 'navigate') return caches.match('/admin/')
         return Response.error()
       })
   )
