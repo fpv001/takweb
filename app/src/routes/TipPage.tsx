@@ -280,20 +280,22 @@ export function TipPage({ linkId }: Props) {
 
     pendingSaveRef.current = (async () => {
       try {
-        const { data, error } = await supabase
+        // Sin .select(): el huésped anónimo no puede leer resenas, así que el id se genera aquí
+        const id = crypto.randomUUID()
+        const { error } = await supabase
           .from('resenas')
           .insert({
+            id,
             estrellas: starRating,
             comentario: texto || null,
             publica: true,
             hotel_id: colaborador.hotel_id,
             colaborador_id: colaborador.id,
           })
-          .select('id').single()
         if (error) throw error
-        setPendingReviewId(data.id)
-        guardarFlow(linkId, { reviewId: data.id, estrellas, texto })
-        return data.id as string
+        setPendingReviewId(id)
+        guardarFlow(linkId, { reviewId: id, estrellas, texto })
+        return id
       } catch (err) {
         console.error('Error saving review:', err)
         return null
@@ -315,12 +317,12 @@ export function TipPage({ linkId }: Props) {
       if (error) throw error
       return existingId
     }
-    const { data, error } = await supabase
+    const id = crypto.randomUUID()
+    const { error } = await supabase
       .from('resenas')
-      .insert({ ...fields, hotel_id: colaborador.hotel_id, colaborador_id: colaborador.id })
-      .select('id').single()
+      .insert({ id, ...fields, hotel_id: colaborador.hotel_id, colaborador_id: colaborador.id })
     if (error) throw error
-    return data.id as string
+    return id
   }
 
   async function handleReviewWithoutTip() {
