@@ -20,7 +20,7 @@ import {
   Avatar, Alert, EmptyState, LiveIndicator, Stars, FullscreenLoader,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
-import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
+import { TrendBars, RatingBreakdown, KpiSpark, TopRings } from '@/components/Stats'
 
 type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null; modulos: Partial<{ docks: boolean; propinas: boolean }> | null }
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
@@ -114,8 +114,8 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
     return <ColaboradorDashboard linkId={colDetalle} useId onBack={() => setColDetalle(null)} />
   }
 
+  // loading arranca en true: solo la primera carga muestra esqueleto, las recargas en vivo son silenciosas
   async function loadAll() {
-    setLoading(true)
     const [{ data: h }, { data: cols }, { data: props }, { data: dk }, { data: suc }] = await Promise.all([
       supabase.from('hotels').select('*').eq('id', hotelId).single(),
       supabase.from('colaboradores').select('*').eq('hotel_id', hotelId).order('nombre'),
@@ -285,6 +285,8 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                   {topCols.length === 0 ? (
                     <EmptyState inline icon="users" title="Sin datos aún" />
                   ) : (
+                    <>
+                    <TopRings items={topCols.map(c => ({ label: c.nombre, value: c.total }))} format={n => formatMXN(n).replace('MX$', '$')} centerLabel="Top 4" label="Top colaboradores por monto" />
                     <div className="tk-list">
                       {topCols.slice(0, 5).map((c, i) => (
                         <div key={c.id} className="tk-list__item">
@@ -301,6 +303,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                         </div>
                       ))}
                     </div>
+                    </>
                   )}
                 </Card>
               </div>

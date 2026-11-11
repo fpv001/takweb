@@ -112,8 +112,8 @@ export function AtlasAdmin() {
     )
   }
 
+  // loading arranca en true: solo la primera carga muestra esqueleto, las recargas en vivo son silenciosas
   async function loadAll() {
-    setLoading(true)
     const [{ data: h }, { data: c }, { data: p }, { data: l }, { data: dk }] = await Promise.all([
       supabase.from('hotels').select('*').order('created_at', { ascending: false }),
       supabase.from('colaboradores').select('*').order('created_at', { ascending: false }),

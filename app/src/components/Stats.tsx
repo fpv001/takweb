@@ -8,6 +8,10 @@ import { BarEndLabels } from '@/components/charts/bar-end-labels'
 import NumberFlow from '@number-flow/react'
 import { AreaSparkline } from '@/components/charts/sparkline'
 import { useEffect, useState, type CSSProperties } from 'react'
+import { RingChart } from '@/components/charts/ring-chart'
+import { Ring } from '@/components/charts/ring'
+import { RingCenter } from '@/components/charts/ring-center'
+import { defaultRingColors } from '@/components/charts/ring-context'
 import { EmptyState } from '@/components/UI'
 
 function useNarrow(query = '(max-width: 640px)') {
@@ -80,4 +84,60 @@ export function KpiSpark({ values }: { values: number[] }) {
       <AreaSparkline data={values.map(v => ({ v }))} dataKey="v" height={40} color="var(--chart-line-primary)" fill="gradient" strokeWidth={2} interactive={false} />
     </div>
   )
+}
+
+// Anillos (Bklit) para comparar a los primeros lugares: cada anillo es su parte respecto al líder
+export function TopRings({ items, format, centerLabel, label }: {
+  items: { label: string; value: number }[]; format: (n: number) => string; centerLabel: string; label: string
+}) {
+  const top = items.filter(i => i.value > 0).slice(0, 4)
+  if (!top.length) return <EmptyState inline icon="chart" title="Sin datos aún" text="Aparecerá cuando haya propinas este mes." />
+  const max = top[0].value
+  const data = top.map((t, i) => ({ label: t.label, value: t.value, maxValue: max, color: defaultRingColors[i] }))
+  return (
+    <div className="tk-rings" role="img" aria-label={`${label}. ${top.map(t => `${t.label}: ${format(t.value)}`).join(', ')}`}>
+      <div className="tk-rings__chart">
+        <RingChart data={data} size={188} strokeWidth={11} ringGap={5} baseInnerRadius={44}>
+          {data.map((_, i) => <Ring key={i} index={i} />)}
+          <RingCenter defaultLabel={centerLabel} prefix="$" />
+        </RingChart>
+      </div>
+      <ul className="tk-rings__legend">
+        {data.map(d => (
+          <li key={d.label}>
+            <span className="tk-rings__dot" style={{ background: d.color }} />
+            <span className="tk-rings__name">{d.label}</span>
+            <span className="tk-rings__val">{format(d.value)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// Barras por mes (Bklit): últimos meses con su total
+export function MonthBars({ data, format, label }: { data: { label: string; total: number }[]; format: (n: number) => string; label: string }) {
+  const narrow = useNarrow()
+  if (!data.some(d => d.total > 0)) return <EmptyState inline icon="chart" title="Sin datos todavía" text="Cuando recibas propinas verás aquí cómo van tus meses." />
+  const rows = data.map(d => ({ mes: d.label, total: d.total }))
+  return (
+    <div className="tk-chart" role="img" aria-label={`${label}. ${data.map(d => `${d.label}: ${format(d.total)}`).join(', ')}`}>
+      <BarChart data={rows} xDataKey="mes" aspectRatio={narrow ? '1.5 / 1' : '2.6 / 1'} barGap={0.4}>
+        <Grid horizontal />
+        <Bar dataKey="total" fill="var(--chart-line-primary)" lineCap="round" />
+        <BarXAxis showAllLabels />
+        <ChartTooltip rows={p => [{ color: 'var(--chart-line-primary)', label: 'Total', value: format(Number(p.total)) }]} />
+      </BarChart>
+    </div>
+  )
+}
+
+export function lastMonths<T extends { created_at: string; monto_total: number }>(items: T[], n = 6) {
+  const now = new Date()
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (n - 1 - i), 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '')
+    return { label, total: items.filter(p => p.created_at.startsWith(key)).reduce((s, p) => s + p.monto_total, 0) }
+  })
 }

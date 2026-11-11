@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { getInitials, formatMXN } from '@/lib/utils'
@@ -9,10 +9,10 @@ import { Toast } from '@/components/UI'
 import { ColaboradorAvatar } from '@/components/ExpedienteModal'
 import {
   AppLayout, SubpageLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
-  Table, Tr, Td, StatusBadge, Badge, Btn, EmptyState, Stars, FullscreenLoader, LiveIndicator,
+  Table, Tr, Td, StatusBadge, Badge, Btn, EmptyState, Stars, AppSkeleton, LiveIndicator,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
-import { TrendBars, RatingBreakdown, KpiSpark } from '@/components/Stats'
+import { TrendBars, RatingBreakdown, KpiSpark, MonthBars, lastMonths } from '@/components/Stats'
 
 type Colaborador = { id: string; nombre: string; puesto: string | null; foto_url: string | null; hotel_id: string; telefono: string | null; fecha_ingreso: string | null }
 type Hotel = { nombre: string; tipo: string | null }
@@ -58,6 +58,7 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
   const [visibleCalif, setVisibleCalif] = useState(PAGE_SIZE)
   const [visibleComent, setVisibleComent] = useState(PAGE_SIZE)
 
+  const cargadoRef = useRef<string | null>(null)
   useEffect(() => { load() }, [linkId])
 
   useRealtimePropinas(colaborador?.id ?? null, (monto) => {
@@ -65,20 +66,21 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
     load()
   })
 
+  // Solo la primera carga muestra esqueleto; las recargas en vivo son silenciosas
   async function load() {
-    setLoading(true)
+    if (cargadoRef.current !== linkId) setLoading(true)
     const query = supabase.from('colaboradores').select('*').eq('activo', true)
     const { data: col, error } = await (useId ? query.eq('id', linkId) : query.eq('link_unico', linkId)).single()
     if (error || !col) { setNotFound(true); setLoading(false); return }
     setColaborador(col as Colaborador)
-    const [{ data: hotelData }, { data: propinasData }, resenasData] = await Promise.all([
+    const [{ data: hotelData }, { data: propinasData }] = await Promise.all([
       supabase.from('hotels').select('nombre, tipo').eq('id', col.hotel_id).single(),
       supabase.from('propinas').select('*').eq('colaborador_id', col.id).order('created_at', { ascending: false }),
-      fetchResenas({ colaborador_id: col.id }),
     ])
     setHotel(hotelData as Hotel)
     setPropinas((propinasData as Propina[]) ?? [])
     setResenas(await fetchResenas({ colaborador_id: col.id }, ((propinasData as Propina[]) ?? []).map(p => p.id)))
+    cargadoRef.current = linkId
     setLoading(false)
   }
 
@@ -114,7 +116,7 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
     </div>
   )
 
-  if (!colaborador || loading) return <FullscreenLoader />
+  if (!colaborador || loading) return <AppSkeleton subpage={!!onBack} />
 
   const conEstrellas = resenas.filter(r => r.estrellas !== null).length
   const conTexto = resenas.filter(r => r.comentario?.trim()).length
@@ -189,6 +191,10 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
       {tab === 'historial' && (
         <>
           <PageHeader title="Historial completo" subtitle={`${propinas.length} propinas · ${formatMXN(totalRecibido)} en total`} action={<Btn variant="secondary" icon="download" onClick={exportarHistorial}>Exportar CSV</Btn>} />
+          <Card title="Tus últimos 6 meses" meta="Total recibido por mes">
+            <MonthBars data={lastMonths(propinas)} label="Propinas de los últimos 6 meses" format={n => formatMXN(n).replace('MX$', '$')} />
+          </Card>
+          <div style={{ height: 24 }} />
           {propinas.length === 0 ? (
             <EmptyState icon="tip" title="Aún no tienes propinas registradas" />
           ) : (

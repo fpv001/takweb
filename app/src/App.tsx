@@ -5,11 +5,11 @@ import { HotelDashboard } from '@/routes/HotelDashboard'
 import { ColaboradorDashboard } from '@/routes/ColaboradorDashboard'
 import { TipPage } from '@/routes/TipPage'
 import { ResenaPage } from '@/routes/ResenaPage'
-import { Btn, FullscreenLoader } from '@/components/UI'
+import { Btn, AppSkeleton } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 
 function Spinner() {
-  return <FullscreenLoader />
+  return <AppSkeleton />
 }
 
 function ErrorPerfil({ mensaje, onSignOut }: { mensaje: string; onSignOut: () => void }) {

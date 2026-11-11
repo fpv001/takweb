@@ -5,7 +5,8 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { getInitials } from '@/lib/utils'
 import { Icon, type IconName } from '@/components/Icon'
-import logoUrl from '@/assets/tak-logo.webp'
+import { TakLogo } from '@/components/TakLogo'
+import { setThemePref, useApplyTheme, useThemePref, type ThemePref } from '@/lib/theme'
 
 // ─── Responsive hook ──────────────────────────────────────────────────────────
 
@@ -17,6 +18,15 @@ function useIsMobile() {
     return () => window.removeEventListener('resize', fn)
   }, [])
   return isMobile
+}
+
+// Al cambiar de pestaña, la vista nueva empieza arriba (como una app nativa)
+function useScrollTopOn(key: string) {
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }, [key])
 }
 
 function cx(...c: (string | false | null | undefined)[]) {
@@ -42,97 +52,172 @@ export function AppLayout({ navItems, activeTab, onTabChange, children, title, s
   const { user, signOut } = useAuth()
   const isMobile = useIsMobile()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const closeRef = useRef<HTMLButtonElement>(null)
+  const [closing, setClosing] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
+  useApplyTheme()
+
+  function closeDrawer() {
+    setClosing(true)
+    setTimeout(() => { setDrawerOpen(false); setClosing(false) }, 220)
+  }
 
   useEffect(() => {
     if (!drawerOpen) return
-    closeRef.current?.focus()
-    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setDrawerOpen(false) }
+    // Foco al panel (no al botón de cerrar) para lectores de pantalla, sin anillo visible al abrir
+    panelRef.current?.focus({ preventScroll: true })
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') closeDrawer() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [drawerOpen])
 
+  useScrollTopOn(activeTab)
+  const dir = useTabDirection(navItems, activeTab)
+  const scrolled = useScrolled(isMobile)
   const current = navItems.find(n => n.id === activeTab)
+  // Barra inferior (HIG): hasta 5 lugares; si hay más secciones, las 4 primeras + "Más" abre el sidebar
+  const barItems = navItems.length > 5 ? navItems.slice(0, 4) : navItems
+  const moreActive = navItems.length > 5 && !barItems.some(n => n.id === activeTab)
 
   return (
     <div className="tk-app">
       {!isMobile && (
         <aside className="tk-sidebar" aria-label="Navegación principal">
-          <SidebarContent
-            navItems={navItems} activeTab={activeTab}
-            onTabChange={onTabChange} title={title} subtitle={subtitle}
-            userEmail={user?.email ?? ''} onSignOut={signOut}
+          <SideNav
+            navItems={navItems} activeTab={activeTab} title={title} subtitle={subtitle}
+            email={user?.email ?? ''} onSignOut={signOut} onTabChange={onTabChange}
           />
         </aside>
       )}
 
       {isMobile && (
-        <header className="tk-topbar">
-          <div className="tk-topbar__tab"><img src={logoUrl} alt="tak!" /></div>
-          <p className="tk-topbar__title">{current?.label ?? title}</p>
+        <header className="tk-topbar" data-scrolled={scrolled || undefined}>
           <button type="button" className="tk-icon-btn" aria-label="Abrir menú" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
             <Icon name="menu" />
+          </button>
+          <p className="tk-topbar__title">{current?.label ?? title}</p>
+          <button type="button" className="tk-topbar__me" aria-label="Tu cuenta" onClick={() => setDrawerOpen(true)}>
+            <Avatar name={user?.email || '?'} size={32} />
           </button>
         </header>
       )}
 
-      {isMobile && drawerOpen && (
-        <div className="tk-drawer" role="dialog" aria-modal="true" aria-label="Menú">
-          <div className="tk-drawer__scrim" onClick={() => setDrawerOpen(false)} />
-          <div className="tk-drawer__panel">
-            <button ref={closeRef} type="button" className="tk-icon-btn tk-drawer__close" aria-label="Cerrar menú" onClick={() => setDrawerOpen(false)}>
-              <Icon name="close" />
+      {isMobile && (
+        <nav className="tk-tabbar" aria-label={title}>
+          {barItems.map(item => (
+            <button
+              key={item.id} type="button" className="tk-tabbar__item"
+              aria-current={activeTab === item.id ? 'page' : undefined}
+              onClick={() => onTabChange(item.id)}
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
             </button>
-            <SidebarContent
-              navItems={navItems} activeTab={activeTab}
-              onTabChange={id => { onTabChange(id); setDrawerOpen(false) }}
-              title={title} subtitle={subtitle}
-              userEmail={user?.email ?? ''} onSignOut={signOut}
+          ))}
+          {navItems.length > 5 && (
+            <button type="button" className="tk-tabbar__item" aria-current={moreActive ? 'page' : undefined} onClick={() => setDrawerOpen(true)}>
+              <Icon name="menu" />
+              <span>{moreActive ? current?.label : 'Más'}</span>
+            </button>
+          )}
+        </nav>
+      )}
+
+      {isMobile && drawerOpen && (
+        <div className={cx('tk-side', closing && 'is-closing')} role="dialog" aria-modal="true" aria-label="Menú">
+          <div className="tk-side__scrim" onClick={closeDrawer} />
+          <div className="tk-side__panel" ref={panelRef} tabIndex={-1}>
+            <SideNav
+              navItems={navItems} activeTab={activeTab} title={title} subtitle={subtitle}
+              email={user?.email ?? ''} onSignOut={signOut} onClose={closeDrawer}
+              onTabChange={id => { onTabChange(id); closeDrawer() }}
             />
           </div>
         </div>
       )}
 
-      <main className="tk-main" id="contenido">
+      <main className="tk-main" id="contenido" data-dir={dir}>
         {children}
       </main>
     </div>
   )
 }
 
-// ─── Sidebar content ──────────────────────────────────────────────────────────
+// Dirección del cambio de pestaña: el contenido entra desde el lado hacia el que avanzas
+function useTabDirection(items: NavItem[], active: string) {
+  const prev = useRef(active)
+  const dir = useRef<'fwd' | 'back'>('fwd')
+  if (prev.current !== active) {
+    const a = items.findIndex(n => n.id === prev.current)
+    const b = items.findIndex(n => n.id === active)
+    dir.current = b >= a ? 'fwd' : 'back'
+    prev.current = active
+  }
+  return dir.current
+}
 
-function SidebarContent({ navItems, activeTab, onTabChange, title, subtitle, userEmail, onSignOut }: {
+// Título grande en el contenido; el título pequeño de la barra aparece al hacer scroll (HIG)
+function useScrolled(enabled: boolean) {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    if (!enabled) return
+    const on = () => setScrolled(window.scrollY > 48)
+    on()
+    window.addEventListener('scroll', on, { passive: true })
+    return () => window.removeEventListener('scroll', on)
+  }, [enabled])
+  return scrolled
+}
+
+// ─── Sidebar (escritorio y móvil comparten el mismo contenido) ───────────────
+
+function SideNav({ navItems, activeTab, onTabChange, title, subtitle, email, onSignOut, onClose }: {
   navItems: NavItem[]; activeTab: string; onTabChange: (id: string) => void
-  title: string; subtitle: string; userEmail: string; onSignOut: () => void
+  title: string; subtitle: string; email: string; onSignOut: () => void; onClose?: () => void
 }) {
   return (
     <>
-      <div className="tk-brandtab">
-        <img src={logoUrl} alt="tak!" />
-        <p className="tk-brandtab__ctx">{subtitle}</p>
+      <div className="tk-side__head">
+        <span className="tk-side__app"><TakLogo className="tk-side__logo" /></span>
+        <div className="tk-side__who">
+          <p className="tk-side__name">tak!</p>
+          {subtitle && <p className="tk-side__ctx" title={subtitle}>{subtitle}</p>}
+        </div>
+        {onClose && (
+          <button type="button" className="tk-side__close" aria-label="Cerrar menú" onClick={onClose}>
+            <Icon name="close" />
+          </button>
+        )}
       </div>
 
-      <nav className="tk-nav" aria-label={title}>
-        <p className="tk-nav__title">{title}</p>
+      <p className="tk-side__label">{title}</p>
+      <nav className="tk-side__group" aria-label={title}>
         {navItems.map(item => (
           <button
-            key={item.id} type="button" className="tk-nav__item"
+            key={item.id} type="button" className="tk-side__row"
             aria-current={activeTab === item.id ? 'page' : undefined}
             onClick={() => onTabChange(item.id)}
           >
-            <Icon name={item.icon} />
-            {item.label}
+            <span className="tk-side__icon"><Icon name={item.icon} /></span>
+            <span className="tk-side__text">{item.label}</span>
+            {activeTab === item.id && <span className="tk-side__dot" aria-hidden="true" />}
           </button>
         ))}
       </nav>
 
-      <div className="tk-userbox">
-        <div className="tk-userbox__who">
-          <Avatar name={userEmail || '?'} size={32} />
-          <p className="tk-userbox__mail" title={userEmail}>{userEmail}</p>
+      <p className="tk-side__label">Apariencia</p>
+      <div className="tk-side__theme"><ThemeSwitch /></div>
+
+      <div className="tk-side__spacer" />
+
+      <div className="tk-side__group">
+        <div className="tk-side__row tk-side__row--static">
+          <Avatar name={email || '?'} size={30} />
+          <span className="tk-side__text tk-side__mail" title={email}>{email}</span>
         </div>
-        <Btn variant="text" icon="logout" onClick={onSignOut} block>Cerrar sesión</Btn>
+        <button type="button" className="tk-side__row tk-side__row--danger" onClick={onSignOut}>
+          <span className="tk-side__icon"><Icon name="logout" /></span>
+          <span className="tk-side__text">Cerrar sesión</span>
+        </button>
       </div>
     </>
   )
@@ -144,6 +229,8 @@ export function SubpageLayout({ onBack, title, meta, avatar, tabs, activeTab, on
   onBack: () => void; title: string; meta?: string; avatar?: ReactNode
   tabs: NavItem[]; activeTab: string; onTabChange: (id: string) => void; children: ReactNode
 }) {
+  useScrollTopOn(activeTab)
+  useApplyTheme()
   return (
     <div className="tk-main" style={{ minHeight: '100vh' }}>
       <div className="tk-subbar">
@@ -165,8 +252,13 @@ export function SubpageLayout({ onBack, title, meta, avatar, tabs, activeTab, on
 }
 
 export function Tabs({ items, active, onChange }: { items: NavItem[]; active: string; onChange: (id: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }, [active])
   return (
-    <div className="tk-tabs">
+    <div className="tk-tabs" ref={ref}>
       <div className="tk-tabs__track" role="tablist">
         {items.map(item => (
           <button key={item.id} type="button" role="tab" className="tk-tab" aria-selected={active === item.id} onClick={() => onChange(item.id)}>
@@ -179,10 +271,21 @@ export function Tabs({ items, active, onChange }: { items: NavItem[]; active: st
   )
 }
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
+// ─── Apariencia (control segmentado) ─────────────────────────────────────────
 
-export function Logo({ width = 96 }: { width?: number }) {
-  return <img src={logoUrl} alt="tak!" style={{ width, height: 'auto' }} />
+const THEMES: { id: ThemePref; label: string }[] = [
+  { id: 'light', label: 'Claro' }, { id: 'dark', label: 'Oscuro' }, { id: 'system', label: 'Auto' },
+]
+
+export function ThemeSwitch() {
+  const pref = useThemePref()
+  return (
+    <div className="tk-segmented" role="radiogroup" aria-label="Apariencia">
+      {THEMES.map(t => (
+        <button key={t.id} type="button" role="radio" aria-checked={pref === t.id} onClick={() => setThemePref(t.id)}>{t.label}</button>
+      ))}
+    </div>
+  )
 }
 
 // ─── PageContent ──────────────────────────────────────────────────────────────
@@ -511,6 +614,41 @@ export function Spinner() {
         {[0, 1, 2, 3].map(i => <Skeleton key={i} h={128} r={20} />)}
       </div>
       <Skeleton h={280} r={20} />
+    </div>
+  )
+}
+
+// Esqueleto de la app completa: misma barra y estructura que la pantalla real
+export function AppSkeleton({ subpage }: { subpage?: boolean }) {
+  const isMobile = useIsMobile()
+  useApplyTheme()
+  if (subpage) return (
+    <div className="tk-main" style={{ minHeight: '100vh' }} aria-busy="true" aria-label="Cargando">
+      <div className="tk-subbar">
+        <div className="tk-subbar__row">
+          <Skeleton h={20} w={84} />
+          <div className="tk-subbar__who"><Skeleton h={36} w={36} r={18} /><Skeleton h={18} w={140} /></div>
+        </div>
+        <div className="tk-tabs"><Skeleton h={42} w={320} r={12} /></div>
+      </div>
+      <PageContent><Spinner /></PageContent>
+    </div>
+  )
+  return (
+    <div className="tk-app" aria-busy="true" aria-label="Cargando">
+      {isMobile ? (
+        <header className="tk-topbar">
+          <Skeleton h={24} w={24} r={6} />
+          <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}><Skeleton h={18} w={120} /></div>
+          <Skeleton h={32} w={32} r={16} />
+        </header>
+      ) : (
+        <aside className="tk-sidebar">
+          <div className="tk-side__head"><span className="tk-side__app"><TakLogo className="tk-side__logo" /></span><Skeleton h={18} w={120} /></div>
+          <Skeleton h={200} r={14} />
+        </aside>
+      )}
+      <main className="tk-main"><PageContent><Spinner /></PageContent></main>
     </div>
   )
 }
