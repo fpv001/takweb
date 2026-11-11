@@ -16,13 +16,11 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        // Librerías en archivos propios: se cachean entre despliegues y solo bajan donde se usan
+        // React y Supabase los usa toda la app: archivos propios que se cachean entre despliegues.
+        // Gráficas y anime.js quedan en los chunks de las rutas que los usan (Rollup los reparte solo).
         manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (/[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react'
-          if (id.includes('@supabase')) return 'supabase'
-          if (/@visx|d3-|motion|framer-motion|number-flow/.test(id)) return 'charts'
-          if (id.includes('animejs')) return 'anime'
+          if (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react'
+          if (id.includes('node_modules/@supabase')) return 'supabase'
         },
       },
     },
