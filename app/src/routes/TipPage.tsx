@@ -523,7 +523,7 @@ export function TipPage({ linkId }: Props) {
                 </Btn>
               )}
 
-              {starRating > 0 && !needsGoogle && (
+              {starRating > 0 && (
                 <>
                   <Btn icon={loading ? undefined : 'tip'} onClick={handleReviewWithTip} disabled={loading} loading={loading} block>
                     {loading ? t.processing : (t.tipButton as string)}
