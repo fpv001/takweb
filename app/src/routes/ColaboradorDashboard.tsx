@@ -116,7 +116,7 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
     </div>
   )
 
-  if (!colaborador || loading) return <AppSkeleton subpage={!!onBack} />
+  if (!colaborador || loading) return <AppSkeleton subpage={!!onBack} variant="perfil" />
 
   const conEstrellas = resenas.filter(r => r.estrellas !== null).length
   const conTexto = resenas.filter(r => r.comentario?.trim()).length

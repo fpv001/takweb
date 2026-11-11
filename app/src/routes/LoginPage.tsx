@@ -3,6 +3,10 @@ import { animate, createScope, createTimeline, stagger, type Scope } from 'anime
 import { useAuth } from '@/context/AuthContext'
 import { Alert, Btn } from '@/components/UI'
 import { TakLogo } from '@/components/TakLogo'
+import { loadColaborador, loadHotel } from '@/routes/loaders'
+
+// El logo de la pantalla de arranque mide 1.25× el del login (ver .tk-launch__logo)
+const LAUNCH_SCALE = 1.25
 
 export function LoginPage() {
   const { signIn } = useAuth()
@@ -15,27 +19,22 @@ export function LoginPage() {
   const scope = useRef<Scope | null>(null)
   const quieto = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-  // Entrada: las letras caen con rebote, el "!" hace el toque y la hoja sube con el formulario
+  // Entrada continua desde la pantalla de arranque: el logo viaja del centro a su lugar,
+  // la hoja sube firme y el "toque" emite una sola onda. Sin rebotes: se siente app, no web.
   useEffect(() => {
-    if (quieto) return
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1200))
+    idle(() => { loadColaborador(); loadHotel() })
+    if (quieto || !root.current) return
+    const mark = root.current.querySelector<HTMLElement>('.tk-auth__mark')!
+    const r = mark.getBoundingClientRect()
+    const dx = window.innerWidth / 2 - (r.left + r.width / 2)
+    const dy = window.innerHeight / 2 - (r.top + r.height / 2)
     scope.current = createScope({ root }).add(() => {
       createTimeline({ defaults: { ease: 'outExpo' } })
-        .add('.tk-logo__glyph', {
-          y: [{ from: -90, to: 0, ease: 'outBounce', duration: 700 }],
-          opacity: { from: 0, duration: 200 },
-          scaleY: [{ from: 1.25, to: .85, duration: 520 }, { to: 1, ease: 'outElastic(1, .5)', duration: 500 }],
-          delay: stagger(90),
-        })
-        .add('.tk-logo__glyph:last-child', {
-          rotate: [{ to: -12, duration: 120 }, { to: 0, ease: 'outElastic(1, .4)', duration: 700 }],
-        }, '-=700')
-        .add('.tk-auth__form', { y: { from: '100%' }, duration: 900 }, 250)
-        .add('.tk-auth__form > *', { y: { from: 18 }, opacity: { from: 0 }, duration: 600, delay: stagger(55) }, 450)
-      // Ondas del toque, en loop, saliendo del logo cuando cae el "!"
-      animate('.tk-auth__ripple i', {
-        scale: { from: .1, to: 1 }, opacity: { from: .9, to: 0 },
-        duration: 3600, ease: 'outCubic', delay: stagger(1200, { start: 850 }), loopDelay: 0, loop: true,
-      })
+        .add('.tk-auth__mark', { x: { from: dx }, y: { from: dy }, scale: { from: LAUNCH_SCALE }, duration: 760 }, 0)
+        .add('.tk-auth__form', { y: { from: '100%' }, duration: 620 }, 140)
+        .add('.tk-auth__form > *', { y: { from: 10 }, opacity: { from: 0 }, duration: 380, delay: stagger(35), ease: 'outQuad' }, 300)
+        .add('.tk-auth__ripple i', { scale: { from: .2, to: 1 }, opacity: { from: .55, to: 0 }, duration: 1500, delay: stagger(200), ease: 'outCubic' }, 620)
     })
     return () => scope.current?.revert()
   }, [])

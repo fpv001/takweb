@@ -603,7 +603,7 @@ h1, h2, h3, p { margin: 0; }
 /* ── Login: mismo lenguaje que la liga del huésped (coral + hoja blanca) ── */
 body:has(.tk-auth) { background: var(--brand-500); }
 .tk-auth { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); background: var(--brand-500); }
-.tk-auth__art { position: relative; overflow: hidden; isolation: isolate; display: flex; align-items: center; justify-content: center; padding: var(--s-12); }
+.tk-auth__art { position: relative; z-index: 2; pointer-events: none; isolation: isolate; display: flex; align-items: center; justify-content: center; padding: var(--s-12); }
 .tk-auth__logo { display: block; width: 120px; height: auto; overflow: visible; color: #fff; }
 .tk-logo__glyph { transform-box: fill-box; transform-origin: 50% 100%; }
 
@@ -863,3 +863,23 @@ tr.is-clickable:active { transform: scale(.99); background: var(--surface-sunken
 .tk-sidebar .tk-side__row { min-height: 44px; font-size: 15px; }
 .tk-sidebar .tk-side__row + .tk-side__row::before { left: 52px; }
 .tk-sidebar .tk-side__head { padding-bottom: var(--s-6); }
+
+/* ── Pantalla de arranque: mismo coral y logo que el ícono de la app ─────── */
+.tk-launch { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--brand-500); }
+.tk-launch__logo { width: 110px; height: auto; color: #fff; overflow: visible; }
+@media (min-width: 861px) { .tk-launch__logo { width: 150px; } }
+body:has(.tk-launch) { background: var(--brand-500); }
+
+/* Login fijo a la pantalla, como una app: sin scroll de página ni rebote; la hoja hace scroll si el teclado lo pide */
+@media (max-width: 860px) {
+  .tk-auth { height: 100vh; height: 100dvh; overflow: hidden; }
+  .tk-auth__panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .tk-auth__form { min-height: 100%; }
+}
+.tk-auth__mark { will-change: transform; }
+
+/* Esqueleto del perfil del colaborador */
+.tk-skel-profile { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); padding: 40px var(--s-4) var(--s-6); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); }
+.tk-skel-profile__cover { position: absolute; left: 0; right: 0; top: 0; height: 72px; background: var(--surface-sunken); }
+.tk-skel-profile > .tk-skel { position: relative; }
+.tk-tabbar .tk-skel { flex-shrink: 0; }

@@ -618,10 +618,29 @@ export function Spinner() {
   )
 }
 
-// Esqueleto de la app completa: misma barra y estructura que la pantalla real
-export function AppSkeleton({ subpage }: { subpage?: boolean }) {
+// Esqueleto del perfil del colaborador: portada, KPIs y gráfica, igual que la pantalla real
+export function ProfileSkeleton() {
+  return (
+    <div className="tk-skel-page" aria-busy="true" aria-label="Cargando">
+      <div className="tk-skel-profile">
+        <div className="tk-skel-profile__cover" />
+        <Skeleton h={88} w={88} r={44} />
+        <Skeleton h={24} w={200} />
+        <Skeleton h={16} w={240} />
+      </div>
+      <div className="tk-kpis" style={{ margin: 0 }}>
+        {[0, 1, 2, 3].map(i => <Skeleton key={i} h={120} r={20} />)}
+      </div>
+      <Skeleton h={240} r={20} />
+    </div>
+  )
+}
+
+// Esqueleto de la app completa: misma barra, pestañas y estructura que la pantalla real
+export function AppSkeleton({ subpage, variant = 'panel' }: { subpage?: boolean; variant?: 'panel' | 'perfil' }) {
   const isMobile = useIsMobile()
   useApplyTheme()
+  const body = variant === 'perfil' ? <ProfileSkeleton /> : <Spinner />
   if (subpage) return (
     <div className="tk-main" style={{ minHeight: '100vh' }} aria-busy="true" aria-label="Cargando">
       <div className="tk-subbar">
@@ -631,7 +650,7 @@ export function AppSkeleton({ subpage }: { subpage?: boolean }) {
         </div>
         <div className="tk-tabs"><Skeleton h={42} w={320} r={12} /></div>
       </div>
-      <PageContent><Spinner /></PageContent>
+      <PageContent>{body}</PageContent>
     </div>
   )
   return (
@@ -639,16 +658,34 @@ export function AppSkeleton({ subpage }: { subpage?: boolean }) {
       {isMobile ? (
         <header className="tk-topbar">
           <Skeleton h={24} w={24} r={6} />
-          <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}><Skeleton h={18} w={120} /></div>
+          <span />
           <Skeleton h={32} w={32} r={16} />
         </header>
       ) : (
         <aside className="tk-sidebar">
           <div className="tk-side__head"><span className="tk-side__app"><TakLogo className="tk-side__logo" /></span><Skeleton h={18} w={120} /></div>
-          <Skeleton h={200} r={14} />
+          <Skeleton h={12} w={90} />
+          <div style={{ height: 8 }} />
+          <Skeleton h={180} r={14} />
         </aside>
       )}
-      <main className="tk-main"><PageContent><Spinner /></PageContent></main>
+      <main className="tk-main"><PageContent>{body}</PageContent></main>
+      {isMobile && (
+        <nav className="tk-tabbar" aria-hidden="true">
+          {[0, 1, 2].map(i => (
+            <span key={i} className="tk-tabbar__item"><Skeleton h={30} w={56} r={15} /><Skeleton h={10} w={48} /></span>
+          ))}
+        </nav>
+      )}
+    </div>
+  )
+}
+
+// Pantalla de arranque (launch screen): coral con el logo, igual que el ícono de la app
+export function LaunchScreen() {
+  return (
+    <div className="tk-launch" aria-busy="true" aria-label="Cargando tak!">
+      <TakLogo className="tk-launch__logo" />
     </div>
   )
 }

@@ -10,6 +10,10 @@
     "build:admin": "npm --prefix app run build"
   },
   "dependencies": {
-    "@vercel/og": "^0.8.5"
+    "@resvg/resvg-js": "^2.6.2",
+    "satori": "^0.33.5"
+  },
+  "overrides": {
+    "fflate": "^0.8.3"
   }
 }

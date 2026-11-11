@@ -1,4 +1,5 @@
-import { ImageResponse } from '@vercel/og'
+import satori from 'satori'
+import { Resvg } from '@resvg/resvg-js'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getColaborador } from './_colaborador.js'
@@ -19,7 +20,8 @@ export async function GET(request) {
     ? img(c.foto, 300, 300, { width: 300, height: 300, borderRadius: 999, objectFit: 'cover' })
     : h('div', { width: 300, height: 300, borderRadius: 999, background: '#fff', color: '#a83a34', fontSize: 120, fontWeight: 700, alignItems: 'center', justifyContent: 'center' }, initials(nombre))
 
-  return new ImageResponse(
+  // satori 0.33.5 (escapa bien el texto) + resvg para el PNG; @vercel/og 1.x no corre en ESM de Node
+  const svg = await satori(
     h('div', { width: '100%', height: '100%', background: '#f57c73', fontFamily: 'Quicksand', color: '#fff', padding: '64px 80px', alignItems: 'center' },
       h('div', { flexDirection: 'column', flex: 1, minWidth: 0, height: '100%', justifyContent: 'space-between' },
         img(`${origin}/public/assets/tak-logo.png`, 190, 106),
@@ -37,7 +39,10 @@ export async function GET(request) {
     {
       width: 1200, height: 630,
       fonts: [{ name: 'Quicksand', data: bold, weight: 700 }, { name: 'Quicksand', data: semi, weight: 600 }],
-      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
     },
   )
+  const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng()
+  return new Response(png, {
+    headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
+  })
 }

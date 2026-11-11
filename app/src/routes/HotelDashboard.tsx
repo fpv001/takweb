@@ -17,7 +17,7 @@ import { Toast } from '@/components/UI'
 import {
   AppLayout, SubpageLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, StatusBadge, Badge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
-  Avatar, Alert, EmptyState, LiveIndicator, Stars, FullscreenLoader,
+  Avatar, Alert, EmptyState, LiveIndicator, Stars,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import { TrendBars, RatingBreakdown, KpiSpark, TopRings } from '@/components/Stats'

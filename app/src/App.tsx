@@ -1,15 +1,20 @@
+import { lazy, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { LoginPage } from '@/routes/LoginPage'
-import { AtlasAdmin } from '@/routes/AtlasAdmin'
-import { HotelDashboard } from '@/routes/HotelDashboard'
-import { ColaboradorDashboard } from '@/routes/ColaboradorDashboard'
-import { TipPage } from '@/routes/TipPage'
-import { ResenaPage } from '@/routes/ResenaPage'
-import { Btn, AppSkeleton } from '@/components/UI'
+import { Btn, AppSkeleton, LaunchScreen } from '@/components/UI'
 import { Icon } from '@/components/Icon'
+import { loadAtlas, loadColaborador, loadHotel, loadLogin, loadResena, loadTip } from '@/routes/loaders'
 
-function Spinner() {
-  return <AppSkeleton />
+// Cada ruta es su propio archivo: el huésped no descarga los paneles ni las gráficas
+const LoginPage = lazy(() => loadLogin().then(m => ({ default: m.LoginPage })))
+const AtlasAdmin = lazy(() => loadAtlas().then(m => ({ default: m.AtlasAdmin })))
+const HotelDashboard = lazy(() => loadHotel().then(m => ({ default: m.HotelDashboard })))
+const ColaboradorDashboard = lazy(() => loadColaborador().then(m => ({ default: m.ColaboradorDashboard })))
+const TipPage = lazy(() => loadTip().then(m => ({ default: m.TipPage })))
+const ResenaPage = lazy(() => loadResena().then(m => ({ default: m.ResenaPage })))
+
+// Solo revisa si existe la llave de sesión de Supabase (no lee su contenido) para elegir la carga correcta
+function haySesionGuardada() {
+  try { return Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token')) } catch { return false }
 }
 
 function ErrorPerfil({ mensaje, onSignOut }: { mensaje: string; onSignOut: () => void }) {
@@ -29,27 +34,32 @@ export function App() {
 
   // ── Rutas públicas — no requieren login ──────────────────────────────────
   const tipMatch = path.match(/^\/tip\/(.+)$/)
-  if (tipMatch) return <TipPage linkId={tipMatch[1]} />
+  if (tipMatch) return <Suspense fallback={<LaunchScreen />}><TipPage linkId={tipMatch[1]} /></Suspense>
   const resenaMatch = path.match(/^\/r\/(.+)$/)
-  if (resenaMatch) return <ResenaPage linkId={resenaMatch[1]} />
+  if (resenaMatch) return <Suspense fallback={<LaunchScreen />}><ResenaPage linkId={resenaMatch[1]} /></Suspense>
 
   // ── Rutas privadas — requieren login ─────────────────────────────────────
-  if (loading) return <Spinner />
-  if (!session || !perfil) return <LoginPage />
+  if (loading) return haySesionGuardada() ? <AppSkeleton /> : <LaunchScreen />
+  if (!session || !perfil) return <Suspense fallback={<LaunchScreen />}><LoginPage /></Suspense>
 
-  switch (perfil.rol) {
+  return (
+    <Suspense fallback={<AppSkeleton variant={perfil.rol === 'colaborador' ? 'perfil' : 'panel'} />}>
+      <Panel rol={perfil.rol} hotelId={perfil.hotel_id} colaboradorId={perfil.colaborador_id} onSignOut={signOut} />
+    </Suspense>
+  )
+}
+
+function Panel({ rol, hotelId, colaboradorId, onSignOut }: { rol: string; hotelId: string | null; colaboradorId: string | null; onSignOut: () => void }) {
+  switch (rol) {
     case 'atlas_admin':
       return <AtlasAdmin />
-
     case 'hotel_admin':
-      if (!perfil.hotel_id) return <ErrorPerfil mensaje="Tu cuenta no tiene un hotel asignado. Contacta a tu administrador de tak!" onSignOut={signOut} />
-      return <HotelDashboard hotelId={perfil.hotel_id} />
-
+      if (!hotelId) return <ErrorPerfil mensaje="Tu cuenta no tiene un hotel asignado. Contacta a tu administrador de tak!" onSignOut={onSignOut} />
+      return <HotelDashboard hotelId={hotelId} />
     case 'colaborador':
-      if (!perfil.colaborador_id) return <ErrorPerfil mensaje="Tu cuenta no tiene un colaborador asignado. Contacta a tu administrador de tak!" onSignOut={signOut} />
-      return <ColaboradorDashboard linkId={perfil.colaborador_id} useId />
-
+      if (!colaboradorId) return <ErrorPerfil mensaje="Tu cuenta no tiene un colaborador asignado. Contacta a tu administrador de tak!" onSignOut={onSignOut} />
+      return <ColaboradorDashboard linkId={colaboradorId} useId />
     default:
-      return <ErrorPerfil mensaje="Tu cuenta tiene un rol desconocido. Contacta a tu administrador de tak!" onSignOut={signOut} />
+      return <ErrorPerfil mensaje="Tu cuenta tiene un rol desconocido. Contacta a tu administrador de tak!" onSignOut={onSignOut} />
   }
 }

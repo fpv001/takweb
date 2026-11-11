@@ -14,5 +14,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '../admin'),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // Librerías en archivos propios: se cachean entre despliegues y solo bajan donde se usan
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react'
+          if (id.includes('@supabase')) return 'supabase'
+          if (/@visx|d3-|motion|framer-motion|number-flow/.test(id)) return 'charts'
+          if (id.includes('animejs')) return 'anime'
+        },
+      },
+    },
   },
 })
