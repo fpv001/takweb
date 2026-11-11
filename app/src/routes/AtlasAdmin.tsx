@@ -7,7 +7,7 @@ import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/
 import { HotelDashboard } from '@/routes/HotelDashboard'
 import { exportCSV, formatDateFull } from '@/lib/export'
 import { googleReviewUrl, limpiarPlaceId } from '@/lib/googlePlace'
-import { etiquetasNegocio, TIPOS_NEGOCIO, type TipoNegocio } from '@/lib/negocio'
+import { etiquetasNegocio, TIPOS_NEGOCIO, type TipoNegocio, type Modulos, modulosDe, modulosPorDefecto, nombrePlan } from '@/lib/negocio'
 import { TIP_BASE_URL, insertarColaborador, linkColaborador } from '@/lib/slug'
 import {
   AppLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
@@ -19,7 +19,8 @@ import { TrendBars, KpiSpark } from '@/components/Stats'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null; created_at: string }
+type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null; created_at: string; modulos: Partial<Modulos> | null; precio_mensual: number | null }
+type Dock = { id: string; hotel_id: string }
 type Colaborador = { id: string; nombre: string; puesto: string | null; hotel_id: string; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null }
 type Propina = { id: string; monto_total: number; estado: string; hotel_id: string; colaborador_id: string; created_at: string }
 type Lead = { id: string; nombre: string; negocio: string; tipo: string; correo: string; mensaje: string; estado: string; notas: string | null; created_at: string }
@@ -60,6 +61,7 @@ export function AtlasAdmin() {
   const [hotels, setHotels] = useState<Hotel[]>([])
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([])
   const [propinas, setPropinas] = useState<Propina[]>([])
+  const [docks, setDocks] = useState<Dock[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [leadDetalle, setLeadDetalle] = useState<Lead | null>(null)
   const [estadoFilter, setEstadoFilter] = useState('all')
@@ -112,12 +114,14 @@ export function AtlasAdmin() {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: h }, { data: c }, { data: p }, { data: l }] = await Promise.all([
+    const [{ data: h }, { data: c }, { data: p }, { data: l }, { data: dk }] = await Promise.all([
       supabase.from('hotels').select('*').order('created_at', { ascending: false }),
       supabase.from('colaboradores').select('*').order('created_at', { ascending: false }),
       supabase.from('propinas').select('*').order('created_at', { ascending: false }),
       supabase.from('leads').select('*').order('created_at', { ascending: false }),
+      supabase.from('puntos_resena').select('id, hotel_id'),
     ])
+    setDocks((dk as Dock[]) ?? [])
     setHotels((h as Hotel[]) ?? [])
     setColaboradores((c as Colaborador[]) ?? [])
     setPropinas((p as Propina[]) ?? [])
@@ -221,30 +225,27 @@ export function AtlasAdmin() {
               <>
                 <PageHeader
                   title="Negocios"
-                  subtitle={`${hotels.length} negocios registrados`}
+                  subtitle={`${hotels.length} negocios · cobro mensual ${formatMXN(hotels.reduce((s, h) => s + (h.precio_mensual ?? 0), 0))}`}
                   action={<Btn icon="plus" onClick={() => setHotelModal('new')}>Nuevo negocio</Btn>}
                 />
                 {hotels.length === 0 ? (
                   <EmptyState icon="hotel" title="Aún no hay negocios registrados" text="Crea el primer negocio para empezar a sumar colaboradores." action={<Btn icon="plus" onClick={() => setHotelModal('new')}>Nuevo negocio</Btn>} />
                 ) : (
-                  <Table headers={['Negocio', 'Tipo', 'Colaboradores', 'Propinas', 'Total generado', 'Stripe', 'Desde', '']} numCols={[2, 3, 4]}>
+                  <Table headers={['Negocio', 'Tipo', 'Plan', 'Docks', 'Colaboradores', 'Mensual', 'Desde', '']} numCols={[3, 4, 5]}>
                     {hotels.map(h => {
                       const cols = colaboradores.filter(c => c.hotel_id === h.id)
-                      const props = propinas.filter(p => p.hotel_id === h.id)
-                      const total = props.reduce((s, p) => s + p.monto_total, 0)
                       const et = etiquetasNegocio(h.tipo)
+                      const m = modulosDe(h)
                       return (
                         <Tr key={h.id}>
                           <Td bold>
                             <span className="tk-cell-person"><Avatar name={h.nombre} size={36} /><span>{h.nombre}</span></span>
                           </Td>
                           <Td><Badge text={et.singularCap} tone={et.tipo === 'hotel' ? 'info' : et.tipo === 'restaurante' ? 'warning' : 'success'} /></Td>
-                          <Td right muted>{cols.length}</Td>
-                          <Td right muted>{props.length}</Td>
-                          <Td right bold>{formatMXN(total)}</Td>
-                          <Td>
-                            <Badge text={h.stripe_api_key ? 'Conectado' : 'Sin conectar'} tone={h.stripe_api_key ? 'success' : 'warning'} />
-                          </Td>
+                          <Td><Badge text={nombrePlan(m)} tone={m.propinas ? 'info' : 'neutral'} /></Td>
+                          <Td right muted>{docks.filter(d => d.hotel_id === h.id).length}</Td>
+                          <Td right muted>{m.propinas ? cols.length : '—'}</Td>
+                          <Td right bold>{h.precio_mensual != null ? formatMXN(h.precio_mensual) : 'Sin precio'}</Td>
                           <Td muted nowrap>{formatDate(h.created_at)}</Td>
                           <Td>
                             <div className="tk-row-actions">
@@ -483,26 +484,37 @@ function HotelModal({ hotel, onClose, onSave }: { hotel: Hotel | null; onClose: 
   const [stripe, setStripe] = useState(hotel?.stripe_api_key ?? '')
   const [placeId, setPlaceId] = useState(hotel?.google_place_id ?? '')
   const [tipo, setTipo] = useState<TipoNegocio>(etiquetasNegocio(hotel?.tipo).tipo)
+  const [modulos, setModulos] = useState<Modulos>(hotel ? modulosDe(hotel) : modulosPorDefecto(tipo))
+  const [precio, setPrecio] = useState(hotel?.precio_mensual != null ? String(hotel.precio_mensual) : '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const preview = limpiarPlaceId(placeId)
 
+  // Al elegir tipo en un negocio nuevo, se aplican los módulos típicos de ese giro
+  function cambiarTipo(v: TipoNegocio) {
+    setTipo(v)
+    if (!hotel) setModulos(modulosPorDefecto(v))
+  }
+
   async function handleSave() {
     if (!nombre.trim()) { setError('El nombre es requerido'); return }
+    if (!modulos.docks && !modulos.propinas) { setError('Activa al menos un módulo'); return }
+    if (precio.trim() && (isNaN(Number(precio)) || Number(precio) < 0)) { setError('El precio debe ser un número válido'); return }
     if (hotel && preview.error) { setError(preview.error); return }
+    const extra = { modulos, precio_mensual: precio.trim() ? Number(precio) : null }
     setSaving(true)
     setError('')
     try {
       if (hotel) {
-        const { error: errorUpdate } = await supabase.from('hotels').update({ nombre: nombre.trim(), tipo, stripe_api_key: stripe.trim() || null }).eq('id', hotel.id)
+        const { error: errorUpdate } = await supabase.from('hotels').update({ nombre: nombre.trim(), tipo, stripe_api_key: stripe.trim() || null, ...extra }).eq('id', hotel.id)
         if (errorUpdate) { setError(errorUpdate.message); return }
         if (preview.valor !== (hotel.google_place_id ?? '')) {
           const { error: errorPlace } = await supabase.rpc('set_hotel_google_place_id', { p_hotel_id: hotel.id, p_place_id: preview.valor })
           if (errorPlace) { setError('No se pudo guardar el Google Place ID: ' + errorPlace.message); return }
         }
       } else {
-        const { error: errorInsert } = await supabase.from('hotels').insert({ nombre: nombre.trim(), tipo, stripe_api_key: stripe.trim() || null })
+        const { error: errorInsert } = await supabase.from('hotels').insert({ nombre: nombre.trim(), tipo, stripe_api_key: stripe.trim() || null, ...extra })
         if (errorInsert) { setError(errorInsert.message); return }
       }
       onSave()
@@ -514,10 +526,24 @@ function HotelModal({ hotel, onClose, onSave }: { hotel: Hotel | null; onClose: 
       <FormField label="Nombre del negocio">
         <Input value={nombre} onChange={setNombre} placeholder="Ej. Hotel Camino Real" />
       </FormField>
-      <FormField label="Tipo de negocio">
-        <Select value={tipo} onChange={v => setTipo(v as TipoNegocio)}>
+      <FormField label="Tipo de negocio" hint="Define la bienvenida y los módulos típicos de su giro">
+        <Select value={tipo} onChange={v => cambiarTipo(v as TipoNegocio)}>
           {TIPOS_NEGOCIO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </Select>
+      </FormField>
+      <FormField label="Módulos activos" hint="Las reseñas por NFC (docks) siempre van incluidas. Propinas es el módulo de colaboradores con pulsera.">
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+          <input type="checkbox" checked={modulos.docks} onChange={e => setModulos({ ...modulos, docks: e.target.checked })} />
+          <span>Docks de reseñas (NFC)</span>
+        </label>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" checked={modulos.propinas} onChange={e => setModulos({ ...modulos, propinas: e.target.checked })} />
+          <span>Propinas con colaboradores (pulseras)</span>
+        </label>
+        <p className="tk-muted" style={{ marginTop: 6 }}>Plan: {nombrePlan(modulos)}</p>
+      </FormField>
+      <FormField label="Precio mensual (MXN)" hint="Lo que se le cobra al negocio cada mes. Opcional.">
+        <Input value={precio} onChange={setPrecio} placeholder="0.00" inputMode="decimal" />
       </FormField>
       <FormField label="Clave API de Stripe" hint="Opcional. Necesaria para procesar pagos reales.">
         <Input value={stripe} onChange={setStripe} placeholder="sk_live_..." />

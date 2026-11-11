@@ -49,7 +49,7 @@ export function LoginPage() {
             <input
               className="tk-input"
               type="email"
-              placeholder="tu@hotel.com"
+              placeholder="tu@correo.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               onKeyDown={handleKey}
@@ -87,7 +87,7 @@ export function LoginPage() {
             </Btn>
           </div>
 
-          <p className="tk-auth__foot">Propinas digitales por <strong>tak!</strong></p>
+          <p className="tk-auth__foot">Reseñas digitales por <strong>tak!</strong></p>
         </div>
       </div>
     </div>
