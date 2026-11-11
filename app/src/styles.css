@@ -883,3 +883,14 @@ body:has(.tk-launch) { background: var(--brand-500); }
 .tk-skel-profile__cover { position: absolute; left: 0; right: 0; top: 0; height: 72px; background: var(--surface-sunken); }
 .tk-skel-profile > .tk-skel { position: relative; }
 .tk-tabbar .tk-skel { flex-shrink: 0; }
+
+/* Barra de estado de iOS (app de inicio, estilo translúcido: el texto siempre es blanco).
+   En claro la franja de la barra va en coral para que se lea; en oscuro se queda del color de la barra.
+   En Safari normal safe-area-inset-top es 0, así que esto no se ve. */
+:root:not([data-theme="dark"]) .tk-topbar,
+:root:not([data-theme="dark"]) .tk-subbar {
+  background: linear-gradient(to bottom, var(--brand-500) env(safe-area-inset-top), transparent env(safe-area-inset-top)), var(--material);
+}
+:root:not([data-theme="dark"]) .tk-side__panel {
+  background: linear-gradient(to bottom, var(--brand-500) env(safe-area-inset-top), transparent env(safe-area-inset-top)), var(--bg);
+}
