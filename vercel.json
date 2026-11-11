@@ -32,7 +32,7 @@
       "includeFiles": "admin/index.html"
     },
     "api/og.js": {
-      "includeFiles": "api/_fonts/**"
+      "includeFiles": "{api/_fonts/**,node_modules/harfbuzzjs/hb.wasm,node_modules/@resvg/resvg-js-linux-x64-gnu/**}"
     }
   }
 }
