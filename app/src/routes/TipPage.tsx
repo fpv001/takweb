@@ -42,6 +42,7 @@ const translations = {
     tipButton: 'Continuar a la propina',
     skipTipButton: 'Enviar sin propina',
     googleCopied: 'Comentario copiado: pégalo en Google',
+    googleThenTip: 'Tu comentario está copiado: pégalo en Google y publícalo. Al terminar, regresa aquí para dejar tu propina.',
     back: 'Volver',
     commentTitle: (name: string) => `Déjale un mensaje a ${name}`,
     commentPlaceholder: 'Cuéntale algo que te haya gustado o sugerencias de mejora...',
@@ -88,6 +89,7 @@ const translations = {
     tipButton: 'Continue to tip',
     skipTipButton: 'Send without a tip',
     googleCopied: 'Comment copied: paste it in Google',
+    googleThenTip: 'Your comment is copied: paste it on Google and post it. When you are done, come back here to leave your tip.',
     back: 'Back',
     commentTitle: (name: string) => `Leave a message for ${name}`,
     commentPlaceholder: 'Tell them something you liked or suggestions for improvement...',
@@ -133,6 +135,26 @@ function execCopy(text: string) {
   document.body.removeChild(area)
 }
 
+// Si el navegador recarga la pestaña mientras el huésped está en Google, se retoma en la propina
+const FLOW_TTL_MS = 30 * 60 * 1000
+type Flow = { reviewId: string | null; estrellas: number; texto: string; at: number }
+
+function leerFlow(linkId: string): Flow | null {
+  try {
+    const raw = sessionStorage.getItem(`tak_flow_${linkId}`)
+    const f = raw ? (JSON.parse(raw) as Flow) : null
+    return f && Date.now() - f.at < FLOW_TTL_MS ? f : null
+  } catch { return null }
+}
+
+function guardarFlow(linkId: string, f: Omit<Flow, 'at'>) {
+  try { sessionStorage.setItem(`tak_flow_${linkId}`, JSON.stringify({ ...f, at: Date.now() })) } catch { /* sin almacenamiento */ }
+}
+
+function borrarFlow(linkId: string) {
+  try { sessionStorage.removeItem(`tak_flow_${linkId}`) } catch { /* sin almacenamiento */ }
+}
+
 export function TipPage({ linkId }: Props) {
   const lang = detectLang()
   const t = translations[lang]
@@ -167,6 +189,15 @@ export function TipPage({ linkId }: Props) {
   useEffect(() => {
     const visited = localStorage.getItem(`tak_visited_${linkId}`)
     setHasVisited(!!visited)
+    const flow = leerFlow(linkId)
+    if (flow) {
+      setStarRating(flow.estrellas)
+      setReviewText(flow.texto)
+      setPendingReviewId(flow.reviewId)
+      setGoogleOpened(true)
+      setCameFromReview(true)
+      setStep('tip')
+    }
   }, [linkId])
 
   async function loadColaborador() {
@@ -240,6 +271,10 @@ export function TipPage({ linkId }: Props) {
     window.open(googleReviewUrl(hotel.google_place_id), '_blank', 'noopener')
     setCopiedNotice(!!texto)
     setGoogleOpened(true)
+    setCameFromReview(true)
+    setStep('tip')
+    const estrellas = starRating
+    guardarFlow(linkId, { reviewId: null, estrellas, texto })
     localStorage.setItem(`tak_google_${hotel.id}`, Date.now().toString())
     localStorage.setItem(`tak_visited_${linkId}`, Date.now().toString())
 
@@ -257,6 +292,7 @@ export function TipPage({ linkId }: Props) {
           .select('id').single()
         if (error) throw error
         setPendingReviewId(data.id)
+        guardarFlow(linkId, { reviewId: data.id, estrellas, texto })
         return data.id as string
       } catch (err) {
         console.error('Error saving review:', err)
@@ -268,7 +304,7 @@ export function TipPage({ linkId }: Props) {
   // Inserta la reseña o, si ya se guardó al tocar Google, la actualiza (sin duplicar)
   async function persistReview(): Promise<string | null> {
     if (!colaborador) return null
-    const existingId = await pendingSaveRef.current
+    const existingId = pendingReviewId ?? await pendingSaveRef.current
     const fields = {
       estrellas: starRating,
       comentario: reviewText.trim() || null,
@@ -295,6 +331,7 @@ export function TipPage({ linkId }: Props) {
     } catch (err) {
       console.error('Error saving review:', err)
     } finally {
+      borrarFlow(linkId)
       localStorage.setItem(`tak_visited_${linkId}`, Date.now().toString())
       setSuccessMessage(lang === 'es' ? '¡Gracias por tu reseña!' : 'Thank you for your review!')
       setSuccessType('review')
@@ -340,13 +377,15 @@ export function TipPage({ linkId }: Props) {
     if (!displayAmount || !colaborador) return
     setLoading(true)
     try {
-      const propinavId = await createTip(pendingReviewId || undefined)
+      const reviewId = pendingReviewId ?? await pendingSaveRef.current
+      const propinavId = await createTip(reviewId)
       if (!propinavId) throw new Error('Tip creation failed')
 
       if (!cameFromReview && starRating > 0) {
         await handleQuickRating()
       }
 
+      borrarFlow(linkId)
       localStorage.setItem(`tak_visited_${linkId}`, Date.now().toString())
       setSuccessMessage((t.successTip as (name: string) => string)(colaborador.nombre))
       setSuccessType('tip')
@@ -396,6 +435,7 @@ export function TipPage({ linkId }: Props) {
       pendingSaveRef.current = null
       setGoogleOpened(false)
       setCopiedNotice(false)
+      borrarFlow(linkId)
     }
   }
 
@@ -539,6 +579,7 @@ export function TipPage({ linkId }: Props) {
 
         {step === 'tip' && (
           <div>
+            {googleOpened && <Alert tone="success">{t.googleThenTip}</Alert>}
             {!cameFromReview && (
               <div className="tk-panel">
                 <p className="tk-glabel">{t.quickRating}</p>
@@ -595,6 +636,11 @@ export function TipPage({ linkId }: Props) {
               <Btn onClick={handleTipSubmit} disabled={!displayAmount || loading} loading={loading} block>
                 {loading ? t.processing : displayAmount ? (t.payBtn as (amt: number) => string)(displayAmount) : t.payBtnSelect}
               </Btn>
+              {cameFromReview && (
+                <Btn variant="text" onClick={handleReviewWithoutTip} disabled={loading} block>
+                  {t.skipTipButton}
+                </Btn>
+              )}
             </div>
           </div>
         )}
