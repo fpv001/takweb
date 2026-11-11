@@ -1,5 +1,5 @@
 // '/admin/index.html' responde 308 en producción: iOS rechaza respuestas redirigidas servidas por el SW
-const CACHE_NAME = 'tak-app-v4'
+const CACHE_NAME = 'tak-app-v5'
 const STATIC_ASSETS = ['/admin/']
 
 self.addEventListener('install', (event) => {
