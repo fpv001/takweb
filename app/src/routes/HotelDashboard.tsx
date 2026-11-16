@@ -10,6 +10,7 @@ import { googleReviewUrl, limpiarPlaceId } from '@/lib/googlePlace'
 import { etiquetasNegocio, bienvenidaNegocio, modulosDe } from '@/lib/negocio'
 import { TIP_BASE_URL, RESENA_BASE_URL, insertarColaborador, insertarConLink, linkColaborador } from '@/lib/slug'
 import { EquiposPanel } from '@/components/EquiposPanel'
+import { PlatillosPanel } from '@/components/PlatillosPanel'
 import { SucursalesPanel, type Sucursal, type SucursalStats } from '@/components/SucursalesPanel'
 import { ColaboradorDashboard } from '@/routes/ColaboradorDashboard'
 import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/components/ExpedienteModal'
@@ -26,7 +27,7 @@ type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: 
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
 type Propina = { id: string; monto_total: number; estado: string; colaborador_id: string; created_at: string }
 type PuntoResena = { id: string; hotel_id: string; sucursal_id: string | null; nombre: string; link_unico: string; activo: boolean; created_at: string }
-type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'sucursales' | 'docks' | 'equipos' | 'leaderboard' | 'configuracion'
+type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'sucursales' | 'docks' | 'platillos' | 'equipos' | 'leaderboard' | 'configuracion'
 type FiltroEstrellas = 'todas' | '5' | '4' | 'bajas'
 type FiltroComentario = 'todas' | 'mensaje' | 'calificacion' | 'bajas' | 'altas'
 
@@ -56,6 +57,7 @@ const NAV = [
   { id: 'resenas', label: 'Reseñas', icon: 'star' },
   { id: 'sucursales', label: 'Sucursales', icon: 'hotel' },
   { id: 'docks', label: 'Docks', icon: 'card' },
+  { id: 'platillos', label: 'Platillos', icon: 'camera' },
   { id: 'equipos', label: 'Repartos', icon: 'split' },
   { id: 'leaderboard', label: 'Ranking', icon: 'trophy' },
   { id: 'configuracion', label: 'Configuración', icon: 'settings' },
@@ -233,7 +235,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   const mods = modulosDe(hotel)
   // Pestañas de propinas solo si el negocio tiene el módulo activo
   const SOLO_PROPINAS: Tab[] = ['propinas', 'equipo', 'equipos', 'leaderboard']
-  const navItems = NAV.filter(n => mods.propinas || !SOLO_PROPINAS.includes(n.id as Tab))
+  const navItems = NAV.filter(n => (mods.propinas || !SOLO_PROPINAS.includes(n.id as Tab)) && (n.id !== 'platillos' || et.tipo === 'restaurante'))
 
   const totalPropinas = propinas.reduce((s, p) => s + p.monto_total, 0)
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -559,6 +561,8 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
               onVerDocks={id => { setFiltroSucursal(id); setTab('docks') }}
             />
           )}
+
+          {tab === 'platillos' && <PlatillosPanel hotelId={hotelId} sucursales={sucursales} />}
 
           {tab === 'docks' && (
             <>

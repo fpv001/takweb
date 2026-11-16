@@ -5,6 +5,7 @@ import { copiarTexto, googleReviewUrl } from '@/lib/googlePlace'
 import { Alert, Btn, Skeleton } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import logoUrl from '@/assets/tak-logo.webp'
+import { enviarCalificacionesPlatillos, fetchPlatillosPublicos, fotoPlatilloUrl, type PlatilloPublico } from '@/lib/platillos'
 
 // Reseñas de dock (placa NFC en mesa, barra o recepción): sin propina y sin colaborador
 
@@ -26,6 +27,15 @@ const translations = {
     footer: 'Reseñas digitales por',
     hello: 'Cuéntanos de tu visita',
     tag: 'Agradecimientos que cuentan',
+    dishesTitle: '¿Qué comiste?',
+    dishesSub: 'Toca los platillos que probaste para calificarlos',
+    dishesRate: 'Califica tus platillos',
+    dishComment: 'Comentario sobre este platillo (opcional)',
+    dishCommentPh: 'Comentario (opcional)',
+    dishSelected: (n: string) => `${n}, seleccionado`,
+    dishRemove: (n: string) => `Quitar ${n}`,
+    dishMissing: 'Ponle estrellas a cada platillo que elegiste, o quítalo de la lista.',
+    dishesThanks: (n: number) => n === 1 ? 'También guardamos la calificación de tu platillo.' : `También guardamos la calificación de tus ${n} platillos.`,
   },
   en: {
     reviewTitle: 'How was your experience?',
@@ -44,6 +54,15 @@ const translations = {
     footer: 'Digital reviews by',
     hello: 'Tell us about your visit',
     tag: 'Thanks that count',
+    dishesTitle: 'What did you eat?',
+    dishesSub: 'Tap the dishes you tried to rate them',
+    dishesRate: 'Rate your dishes',
+    dishComment: 'Comment on this dish (optional)',
+    dishCommentPh: 'Comment (optional)',
+    dishSelected: (n: string) => `${n}, selected`,
+    dishRemove: (n: string) => `Remove ${n}`,
+    dishMissing: 'Give stars to each dish you picked, or remove it from the list.',
+    dishesThanks: (n: number) => n === 1 ? 'We also saved your dish rating.' : `We also saved the ratings for your ${n} dishes.`,
   },
 }
 
@@ -70,11 +89,19 @@ export function ResenaPage({ linkId }: Props) {
   const [error, setError] = useState('')
   const [done, setDone] = useState<'plain' | 'google' | null>(null)
   const [copied, setCopied] = useState(false)
+  const [platillos, setPlatillos] = useState<PlatilloPublico[]>([])
+  // Orden de selección = orden en que se muestran para calificar
+  const [elegidos, setElegidos] = useState<{ id: string; estrellas: number; comentario: string }[]>([])
+  const [platillosGuardados, setPlatillosGuardados] = useState(0)
 
   useEffect(() => { load() }, [linkId])
 
   async function load() {
-    const { data, error: errorCarga } = await supabase.rpc('get_punto_publico', { p_link: linkId }).maybeSingle()
+    const [{ data, error: errorCarga }, menu] = await Promise.all([
+      supabase.rpc('get_punto_publico', { p_link: linkId }).maybeSingle(),
+      fetchPlatillosPublicos(linkId),
+    ])
+    setPlatillos(menu)
     if (errorCarga) console.error('Error cargando punto de reseñas:', errorCarga)
     if (errorCarga || !data) { setNotFound(true); document.title = 'tak'; return }
     const p = data as Punto
@@ -85,10 +112,24 @@ export function ResenaPage({ linkId }: Props) {
   // Google solo si el negocio tiene Place ID, la calificación es de 4-5 y el negocio aún no publicó desde este dispositivo
   const googleDisponible = !!punto?.google_place_id && starRating >= 4 && !localStorage.getItem(`tak_google_${punto?.hotel_id}`)
 
+  const faltanEstrellas = elegidos.some(e => e.estrellas === 0)
+
+  function togglePlatillo(id: string) {
+    setError('')
+    setElegidos(prev => prev.some(e => e.id === id) ? prev.filter(e => e.id !== id) : [...prev, { id, estrellas: 0, comentario: '' }])
+  }
+
+  function editarElegido(id: string, cambios: Partial<{ estrellas: number; comentario: string }>) {
+    setError('')
+    setElegidos(prev => prev.map(e => e.id === id ? { ...e, ...cambios } : e))
+  }
+
   async function guardar(publica: boolean): Promise<boolean> {
     if (!punto) return false
-    // Sin .select(): el huésped anónimo no tiene permiso de lectura sobre resenas
+    // Sin .select(): el huésped anónimo no tiene permiso de lectura sobre resenas; el id se genera aquí
+    const resenaId = crypto.randomUUID()
     const { error: errorInsert } = await supabase.from('resenas').insert({
+      id: resenaId,
       estrellas: starRating,
       comentario: texto.trim() || null,
       publica,
@@ -101,11 +142,18 @@ export function ResenaPage({ linkId }: Props) {
       setError(t.saveError)
       return false
     }
+    // La reseña general ya quedó guardada; si fallan los platillos no se repite el envío
+    if (elegidos.length) {
+      const errorPlatillos = await enviarCalificacionesPlatillos(linkId, resenaId, elegidos.map(e => ({ platillo_id: e.id, estrellas: e.estrellas, comentario: e.comentario })))
+      if (errorPlatillos) console.error('Error guardando calificaciones de platillos:', errorPlatillos)
+      else setPlatillosGuardados(elegidos.length)
+    }
     return true
   }
 
   async function handleEnviar() {
     if (!punto || starRating === 0 || saving) return
+    if (faltanEstrellas) { setError(t.dishMissing); return }
     setSaving(true)
     setError('')
     const ok = await guardar(false)
@@ -116,6 +164,7 @@ export function ResenaPage({ linkId }: Props) {
   // Copia, abre Google y guarda en el mismo gesto del usuario. El guardado va después de window.open.
   function handlePublicarGoogle() {
     if (!punto?.google_place_id || starRating < 4 || saving) return
+    if (faltanEstrellas) { setError(t.dishMissing); return }
     const value = texto.trim()
     if (value) copiarTexto(value)
     window.open(googleReviewUrl(punto.google_place_id), '_blank', 'noopener')
@@ -178,6 +227,7 @@ export function ResenaPage({ linkId }: Props) {
         <div className="tk-success" role="status">
           <span className="tk-success__mark"><Icon name="check" /></span>
           <h1 className="tk-success__title">{t.thanks}</h1>
+          {platillosGuardados > 0 && <p className="tk-success__text">{t.dishesThanks(platillosGuardados)}</p>}
           {done === 'google' && copied && <Alert tone="success">{t.copied}</Alert>}
         </div>
         {footer}
@@ -196,6 +246,69 @@ export function ResenaPage({ linkId }: Props) {
     </div>
   )
 
+  const menu = platillos.length > 0 && (
+    <section className="tk-dishes" aria-labelledby="tk-dishes-title">
+      <h2 id="tk-dishes-title" className="tk-gtitle tk-dishes__title">{t.dishesTitle}</h2>
+      <p className="tk-dishes__sub">{t.dishesSub}</p>
+      <div className="tk-dish-grid">
+        {platillos.map(p => {
+          const on = elegidos.some(e => e.id === p.id)
+          const foto = fotoPlatilloUrl(p.foto_path)
+          return (
+            <button key={p.id} type="button" className="tk-dish" aria-pressed={on} onClick={() => togglePlatillo(p.id)}
+              aria-label={on ? t.dishSelected(p.nombre) : p.nombre}>
+              <span className="tk-dish__photo">
+                {foto ? <img src={foto} alt="" loading="lazy" decoding="async" /> : <span className="tk-dish__initial" aria-hidden="true">{p.nombre.charAt(0)}</span>}
+                <span className="tk-dish__check" aria-hidden="true"><Icon name="check" /></span>
+              </span>
+              <span className="tk-dish__name">{p.nombre}</span>
+              {p.descripcion && <span className="tk-dish__desc">{p.descripcion}</span>}
+            </button>
+          )
+        })}
+      </div>
+
+      {elegidos.length > 0 && (
+        <div className="tk-dish-rates">
+          <h3 className="tk-glabel">{t.dishesRate}</h3>
+          {elegidos.map(e => {
+            const p = platillos.find(x => x.id === e.id)
+            if (!p) return null
+            const foto = fotoPlatilloUrl(p.foto_path)
+            return (
+              <div key={e.id} className="tk-dish-rate" data-missing={error && e.estrellas === 0 ? '' : undefined}>
+                <div className="tk-dish-rate__head">
+                  <span className="tk-dish-rate__thumb">
+                    {foto ? <img src={foto} alt="" /> : <span aria-hidden="true">{p.nombre.charAt(0)}</span>}
+                  </span>
+                  <p className="tk-dish-rate__name">{p.nombre}</p>
+                  <button type="button" className="tk-dish-rate__remove" onClick={() => togglePlatillo(e.id)} aria-label={t.dishRemove(p.nombre)}>
+                    <Icon name="close" />
+                  </button>
+                </div>
+                <div className="tk-rate tk-rate--sm" role="group" aria-label={p.nombre}>
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button key={s} type="button" onClick={() => editarElegido(e.id, { estrellas: s })} className={s <= e.estrellas ? 'is-on' : undefined}
+                      aria-label={t.starLabel(s)} aria-pressed={s === e.estrellas}>
+                      <Icon name="star" />
+                    </button>
+                  ))}
+                </div>
+                {e.estrellas > 0 && (
+                  <label className="tk-field">
+                    <span className="tk-sr">{t.dishComment}</span>
+                    <input className="tk-input" placeholder={t.dishCommentPh} value={e.comentario} maxLength={500}
+                      onChange={ev => editarElegido(e.id, { comentario: ev.target.value })} />
+                  </label>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+
   return (
     <div className="tk-guest">
       {header}
@@ -209,6 +322,7 @@ export function ResenaPage({ linkId }: Props) {
             <span className="tk-sr">{t.reviewTitle}</span>
             <textarea className="tk-textarea" placeholder={t.placeholder} value={texto} onChange={e => setTexto(e.target.value)} rows={4} />
           </label>
+          {menu}
           {error && <Alert>{error}</Alert>}
 
           <div className="tk-gactions">
