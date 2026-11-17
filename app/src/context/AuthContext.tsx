@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [loading, setLoading] = useState(true)
-  const initialized = useRef(false)
+  const perfilUserId = useRef<string | null>(null)
 
   useEffect(() => {
     // Solo usar onAuthStateChange — es suficiente, se dispara inmediatamente
@@ -37,8 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null)
 
       if (session?.user) {
+        // Al volver a la pestaña Supabase reemite la sesión: si es el mismo usuario no recargues ni desmontes el panel
+        if (perfilUserId.current === session.user.id) return
         await loadPerfil(session.user.id)
       } else {
+        perfilUserId.current = null
         setPerfil(null)
         setLoading(false)
       }
@@ -60,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut()
         setPerfil(null)
       } else {
+        perfilUserId.current = userId
         setPerfil(data as Perfil)
       }
     } catch (e) {
@@ -77,6 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    perfilUserId.current = null
+    try { Object.keys(sessionStorage).filter(k => k.startsWith('tak:')).forEach(k => sessionStorage.removeItem(k)) } catch { /* sin almacenamiento */ }
     setLoading(false)
     await supabase.auth.signOut()
     setPerfil(null)

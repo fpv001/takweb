@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useStickyState } from '@/lib/sticky'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { getInitials, formatMXN } from '@/lib/utils'
@@ -51,7 +52,7 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
   const [resenas, setResenas] = useState<Resena[]>([])
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('resumen')
+  const [tab, setTab] = useStickyState<Tab>(`tak:colaborador:${linkId}:tab`, 'resumen')
   const [toast, setToast] = useState<string | null>(null)
   const [filtroEstrellas, setFiltroEstrellas] = useState<FiltroEstrellas>('todas')
   const [filtroComent, setFiltroComent] = useState<FiltroComentario>('todas')

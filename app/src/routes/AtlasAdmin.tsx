@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useStickyState } from '@/lib/sticky'
 import { supabase } from '@/integrations/supabase/client'
 import { getInitials, formatMXN } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -57,7 +58,7 @@ const NAV = [
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function AtlasAdmin() {
-  const [tab, setTab] = useState<Tab>('resumen')
+  const [tab, setTab] = useStickyState<Tab>('tak:admin:tab', 'resumen')
   const [hotels, setHotels] = useState<Hotel[]>([])
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([])
   const [propinas, setPropinas] = useState<Propina[]>([])
@@ -69,7 +70,7 @@ export function AtlasAdmin() {
   const [search, setSearch] = useState('')
   const [hotelFilter, setHotelFilter] = useState('all')
   const [hotelModal, setHotelModal] = useState<Hotel | 'new' | null>(null)
-  const [hotelDetalle, setHotelDetalle] = useState<string | null>(null)
+  const [hotelDetalle, setHotelDetalle] = useStickyState<string | null>('tak:admin:negocio', null)
   const [colModal, setColModal] = useState<Colaborador | 'new' | null>(null)
   const [usuarioModal, setUsuarioModal] = useState(false)
   const [expediente, setExpediente] = useState<Colaborador | null>(null)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useStickyState } from '@/lib/sticky'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { getInitials, formatMXN } from '@/lib/utils'
@@ -66,7 +67,7 @@ const NAV = [
 type Props = { hotelId: string; onBack?: () => void }
 
 export function HotelDashboard({ hotelId, onBack }: Props) {
-  const [tab, setTab] = useState<Tab>('resumen')
+  const [tab, setTab] = useStickyState<Tab>(`tak:negocio:${hotelId}:tab`, 'resumen')
   const [hotel, setHotel] = useState<Hotel | null>(null)
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([])
   const [propinas, setPropinas] = useState<Propina[]>([])
@@ -75,7 +76,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   const [colModal, setColModal] = useState<Colaborador | 'new' | null>(null)
   const [usuarioModal, setUsuarioModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [colDetalle, setColDetalle] = useState<string | null>(null)
+  const [colDetalle, setColDetalle] = useStickyState<string | null>(`tak:negocio:${hotelId}:colaborador`, null)
   const [expediente, setExpediente] = useState<Colaborador | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Colaborador | null>(null)
   const [googlePlaceId, setGooglePlaceId] = useState('')
