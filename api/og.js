@@ -2,7 +2,7 @@ import satori from 'satori'
 import { Resvg } from '@resvg/resvg-js'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { getColaborador } from './_colaborador.js'
+import { getColaborador, getDock } from './_colaborador.js'
 
 const h = (type, style, ...children) => ({ type, props: { style: { display: 'flex', ...style }, children: children.filter(Boolean) } })
 const img = (src, width, height, style) => ({ type: 'img', props: { src, width, height, style } })
@@ -11,12 +11,20 @@ const initials = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).
 
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
-  const c = await getColaborador(searchParams.get('id')).catch(() => null)
-  const nombre = c?.nombre ?? 'tu anfitrión'
-  const meta = c ? [c.puesto, c.hotel].filter(Boolean).join(' · ') : ''
+  const id = searchParams.get('id')
+  const esDock = searchParams.get('k') === 'r'
+  const d = esDock ? await getDock(id).catch(() => null) : null
+  const c = esDock ? null : await getColaborador(id).catch(() => null)
+  const nombre = esDock ? (d?.negocio ?? 'tu visita') : (c?.nombre ?? 'tu anfitrión')
+  const meta = esDock ? (d?.punto ?? '') : c ? [c.puesto, c.hotel].filter(Boolean).join(' · ') : ''
+  const etiqueta = esDock ? 'Cuéntanos de tu visita a:' : 'Agradece a:'
   const [bold, semi] = await Promise.all([font('Quicksand-Bold.otf'), font('Quicksand-SemiBold.otf')])
 
-  const photo = c?.foto
+  // Dock: estrella de calificación en lugar de foto de colaborador
+  const photo = esDock
+    ? h('div', { width: 300, height: 300, borderRadius: 999, background: '#fff', alignItems: 'center', justifyContent: 'center' },
+        { type: 'svg', props: { width: 170, height: 170, viewBox: '0 0 24 24', children: { type: 'path', props: { d: 'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5z', fill: '#f57c73' } } } })
+    : c?.foto
     ? img(c.foto, 300, 300, { width: 300, height: 300, borderRadius: 999, objectFit: 'cover' })
     : h('div', { width: 300, height: 300, borderRadius: 999, background: '#fff', color: '#a83a34', fontSize: 120, fontWeight: 700, alignItems: 'center', justifyContent: 'center' }, initials(nombre))
 
@@ -26,7 +34,7 @@ export async function GET(request) {
       h('div', { flexDirection: 'column', flex: 1, minWidth: 0, height: '100%', justifyContent: 'space-between' },
         img(`${origin}/public/assets/tak-logo.png`, 190, 106),
         h('div', { flexDirection: 'column' },
-          h('div', { fontSize: 40, fontWeight: 600, color: '#fff3f1' }, 'Agradece a:'),
+          h('div', { fontSize: 40, fontWeight: 600, color: '#fff3f1' }, etiqueta),
           h('div', { fontSize: nombre.length > 14 ? 76 : 88, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2, marginTop: 8 }, nombre),
           meta && h('div', { alignSelf: 'flex-start', marginTop: 28, padding: '10px 26px', borderRadius: 999, background: 'rgba(255,255,255,.22)', fontSize: 30, fontWeight: 600 }, meta),
         ),

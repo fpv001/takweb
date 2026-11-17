@@ -15,3 +15,14 @@ export async function getColaborador(link) {
   const [h] = await rest(`hotels?select=nombre&id=eq.${c.hotel_id}`)
   return { nombre: titleCase(c.nombre), puesto: c.puesto, foto: c.foto_url, hotel: h?.nombre ?? null }
 }
+
+export async function getDock(link) {
+  if (!link || !url || !key) return null
+  const r = await fetch(`${url}/rest/v1/rpc/get_punto_publico`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_link: link }),
+  })
+  const [d] = r.ok ? await r.json() : []
+  return d ? { negocio: d.negocio_nombre, punto: d.punto_nombre, restaurante: d.tipo === 'restaurante' } : null
+}
