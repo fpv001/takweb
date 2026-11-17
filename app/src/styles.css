@@ -441,7 +441,7 @@ h1, h2, h3, p { margin: 0; }
 /* ── Alertas / banners ───────────────────────────────────────────────────── */
 .tk-alert { display: flex; gap: var(--s-3); align-items: flex-start; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); font: var(--t-small); margin-bottom: var(--s-4); background: var(--info-bg); color: var(--info); }
 .tk-alert svg { width: 20px; height: 20px; flex-shrink: 0; }
-.tk-alert p { color: var(--text); }
+.tk-alert p, .tk-alert__body { color: var(--text); min-width: 0; }
 .tk-alert--danger { background: var(--danger-bg); color: var(--danger); }
 .tk-alert--warning { background: var(--warning-bg); color: var(--warning); }
 .tk-alert--success { background: var(--success-bg); color: var(--success); }
@@ -742,6 +742,8 @@ body:has(.tk-guest) { background: var(--brand-600); }
 .tk-divider { display: flex; align-items: center; gap: var(--s-3); margin: var(--s-4) 0; font: var(--t-small); color: var(--text-muted); }
 .tk-divider::before, .tk-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .tk-paybar { position: sticky; bottom: 0; z-index: 5; margin: var(--s-2) calc(var(--s-4) * -1) 0; padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); background: var(--material); -webkit-backdrop-filter: var(--material-blur); backdrop-filter: var(--material-blur); border-top: 1px solid var(--border); }
+.tk-gsteps { list-style: decimal; margin: var(--s-1) 0 0; padding-left: 1.25em; }
+.tk-gsteps li + li { margin-top: 2px; }
 .tk-gactions { display: flex; flex-direction: column; gap: var(--s-2); }
 .tk-gfoot { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: auto; padding-top: var(--s-8); font: var(--t-small); color: var(--text-muted); }
 .tk-gfoot strong { padding: 2px 9px; border-radius: var(--r-full); background: var(--brand-500); color: #fff; font-weight: 700; }

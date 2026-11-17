@@ -564,7 +564,7 @@ export function Alert({ children, tone = 'danger' }: { children: ReactNode; tone
   return (
     <div className={`tk-alert tk-alert--${tone}`} role={tone === 'danger' ? 'alert' : 'status'}>
       <Icon name={icon} />
-      <p>{children}</p>
+      <div className="tk-alert__body">{children}</div>
     </div>
   )
 }

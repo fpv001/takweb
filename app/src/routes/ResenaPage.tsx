@@ -18,8 +18,9 @@ const translations = {
     sending: 'Enviando...',
     publish: 'Publicar en Google',
     helpImprove: 'Tu comentario nos ayuda a mejorar',
-    googlePublish: 'Al tocar el botón, tu comentario se copia al portapapeles: solo tienes que pegarlo en Google',
-    copied: 'Comentario copiado: pégalo en Google',
+    googleTitle: 'Publica tu reseña en Google en 3 pasos',
+    googleSteps: ['Escribe tu comentario aquí abajo.', 'Toca «Publicar en Google»: lo copiamos por ti.', 'En Google, elige tus estrellas, mantén presionado el cuadro de texto y toca Pegar.'],
+    copied: 'Tu comentario ya está copiado. En Google, mantén presionado el cuadro de texto y toca Pegar.',
     thanks: '¡Gracias por tu reseña!',
     notAvailable: 'Este punto de reseñas no está disponible',
     notAvailableSub: 'Verifica el enlace e intenta de nuevo.',
@@ -45,8 +46,9 @@ const translations = {
     sending: 'Sending...',
     publish: 'Post on Google',
     helpImprove: 'Your feedback helps us improve',
-    googlePublish: 'When you tap the button, your comment is copied to the clipboard: just paste it on Google',
-    copied: 'Comment copied: paste it in Google',
+    googleTitle: 'Post your review on Google in 3 steps',
+    googleSteps: ['Write your comment below.', 'Tap “Post on Google”: we copy it for you.', 'On Google, pick your stars, press and hold the text box and tap Paste.'],
+    copied: 'Your comment is copied. On Google, press and hold the text box and tap Paste.',
     thanks: 'Thank you for your review!',
     notAvailable: 'This review point is not available',
     notAvailableSub: 'Please check the link and try again.',
@@ -316,7 +318,12 @@ export function ResenaPage({ linkId }: Props) {
         <div>
           <h2 className="tk-gtitle">{t.reviewTitle}</h2>
           {starPicker}
-          {starRating >= 4 && googleDisponible && <Alert tone="success">{t.googlePublish}</Alert>}
+          {starRating >= 4 && googleDisponible && (
+            <Alert tone="success">
+              <strong>{t.googleTitle}</strong>
+              <ol className="tk-gsteps">{t.googleSteps.map(x => <li key={x}>{x}</li>)}</ol>
+            </Alert>
+          )}
           {starRating > 0 && starRating <= 3 && <Alert tone="neutral">{t.helpImprove}</Alert>}
           <label className="tk-field">
             <span className="tk-sr">{t.reviewTitle}</span>
