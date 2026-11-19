@@ -203,7 +203,8 @@ export function TipPage({ linkId }: Props) {
   async function loadColaborador() {
     const { data, error } = await supabase
       .from('colaboradores')
-      .select('*')
+      // Columnas explícitas: anon solo tiene permiso sobre estas (sin teléfono ni notas)
+      .select('id, nombre, puesto, foto_url, hotel_id')
       .eq('link_unico', linkId)
       .eq('activo', true)
       .single()
