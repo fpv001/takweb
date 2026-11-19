@@ -9,6 +9,16 @@ const img = (src, width, height, style) => ({ type: 'img', props: { src, width, 
 const font = f => readFile(join(process.cwd(), 'api/_fonts', f))
 const initials = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
+// Anti-SSRF: satori hace fetch server-side del <img src>. foto_url se escribe desde el
+// panel (RLS por fila, no por columna), así que un gerente podría poner cualquier URL
+// (p.ej. http://169.254.169.254/...). Solo se renderiza si es https y apunta al host de
+// storage de Supabase; cualquier otra cosa cae al avatar de iniciales.
+const STORAGE_HOST = (() => { try { return new URL(process.env.VITE_SUPABASE_URL).host } catch { return null } })()
+const fotoSegura = u => {
+  try { const x = new URL(u); return x.protocol === 'https:' && STORAGE_HOST && x.host === STORAGE_HOST ? u : null }
+  catch { return null }
+}
+
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const id = searchParams.get('id')
@@ -24,8 +34,8 @@ export async function GET(request) {
   const photo = esDock
     ? h('div', { width: 300, height: 300, borderRadius: 999, background: '#fff', alignItems: 'center', justifyContent: 'center' },
         { type: 'svg', props: { width: 170, height: 170, viewBox: '0 0 24 24', children: { type: 'path', props: { d: 'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5z', fill: '#f57c73' } } } })
-    : c?.foto
-    ? img(c.foto, 300, 300, { width: 300, height: 300, borderRadius: 999, objectFit: 'cover' })
+    : fotoSegura(c?.foto)
+    ? img(fotoSegura(c.foto), 300, 300, { width: 300, height: 300, borderRadius: 999, objectFit: 'cover' })
     : h('div', { width: 300, height: 300, borderRadius: 999, background: '#fff', color: '#a83a34', fontSize: 120, fontWeight: 700, alignItems: 'center', justifyContent: 'center' }, initials(nombre))
 
   // satori 0.33.5 (escapa bien el texto) + resvg para el PNG; @vercel/og 1.x no corre en ESM de Node

@@ -201,13 +201,11 @@ export function TipPage({ linkId }: Props) {
   }, [linkId])
 
   async function loadColaborador() {
+    // RPC security definer: devuelve SOLO el colaborador de esta liga (evita que anon enumere
+    // todo el directorio). Mismo patrón que get_punto_publico / get_hotel_publico.
     const { data, error } = await supabase
-      .from('colaboradores')
-      // Columnas explícitas: anon solo tiene permiso sobre estas (sin teléfono ni notas)
-      .select('id, nombre, puesto, foto_url, hotel_id')
-      .eq('link_unico', linkId)
-      .eq('activo', true)
-      .single()
+      .rpc('get_colaborador_publico', { p_link: linkId })
+      .maybeSingle()
 
     if (error || !data) { setNotFound(true); document.title = 'tak'; return }
     setColaborador(data as Colaborador)

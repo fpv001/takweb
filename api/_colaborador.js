@@ -10,7 +10,13 @@ export const titleCase = s => s.toLowerCase().replace(/(^|\s)\p{L}/gu, c => c.to
 
 export async function getColaborador(link) {
   if (!link || !url || !key) return null
-  const [c] = await rest(`colaboradores?select=nombre,puesto,foto_url,hotel_id&activo=eq.true&link_unico=eq.${encodeURIComponent(link)}`)
+  // RPC security definer: solo el colaborador de esta liga (anon ya no lee la tabla directo).
+  const r = await fetch(`${url}/rest/v1/rpc/get_colaborador_publico`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_link: link }),
+  })
+  const [c] = r.ok ? await r.json() : []
   if (!c) return null
   const [h] = await rest(`hotels?select=nombre&id=eq.${c.hotel_id}`)
   return { nombre: titleCase(c.nombre), puesto: c.puesto, foto: c.foto_url, hotel: h?.nombre ?? null }
