@@ -75,7 +75,8 @@ export function ColaboradorDashboard({ linkId, useId = false, onBack }: Props) {
     if (error || !col) { setNotFound(true); setLoading(false); return }
     setColaborador(col as Colaborador)
     const [{ data: hotelData }, { data: propinasData }] = await Promise.all([
-      supabase.from('hotels').select('nombre, tipo').eq('id', col.hotel_id).single(),
+      // RPC pública: el colaborador no necesita (ni debe) leer la fila completa del negocio
+      supabase.rpc('get_hotel_publico', { p_hotel_id: col.hotel_id }).maybeSingle(),
       supabase.from('propinas').select('*').eq('colaborador_id', col.id).order('created_at', { ascending: false }),
     ])
     setHotel(hotelData as Hotel)
