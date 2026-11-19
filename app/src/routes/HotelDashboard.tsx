@@ -824,7 +824,9 @@ function ConfirmDeleteColaborador({ colaborador, propinasCount, onClose, onDelet
     try {
       // Limpia dependencias que bloquean el borrado
       await supabase.from('equipo_miembros').delete().eq('colaborador_id', colaborador.id)
-      await supabase.from('perfiles').update({ colaborador_id: null }).eq('colaborador_id', colaborador.id)
+      // RPC: el gerente no puede editar perfiles directamente (RLS); la función valida que sea su negocio
+      const { error: desligarError } = await supabase.rpc('desligar_perfil_colaborador', { p_colaborador_id: colaborador.id })
+      if (desligarError) console.error('No se pudo desligar el acceso del colaborador:', desligarError)
       const { error: err } = await supabase.from('colaboradores').delete().eq('id', colaborador.id)
       if (err) {
         setError(

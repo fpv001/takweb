@@ -2,26 +2,65 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm ci && npm --prefix app ci",
-  "buildCommand": "npm --prefix app run build",
-  "outputDirectory": ".",
+  "buildCommand": "npm --prefix app run build && node scripts/copiar-sitio.mjs",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "redirects": [
-    { "source": "/app/:path*", "destination": "/", "permanent": false },
-    { "source": "/db/:path*", "destination": "/", "permanent": false },
-    { "source": "/security/:path*", "destination": "/", "permanent": false },
-    { "source": "/server.mjs", "destination": "/", "permanent": false },
-    { "source": "/vercel.json", "destination": "/", "permanent": false },
-    { "source": "/.gitignore", "destination": "/", "permanent": false }
+    {
+      "source": "/app/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/db/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/security/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/server.mjs",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/vercel.json",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/.gitignore",
+      "destination": "/",
+      "permanent": false
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=()"
+        }
       ]
     }
   ],

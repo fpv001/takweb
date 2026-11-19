@@ -251,10 +251,11 @@ export function TipPage({ linkId }: Props) {
       })
 
       if (reviewIdToUpdate) {
-        await supabase
-          .from('resenas')
-          .update({ propina_id: propina.id })
-          .eq('id', reviewIdToUpdate)
+        // RPC: anon no puede hacer UPDATE en resenas; la función solo toca reseñas recientes de este colaborador
+        const { error: linkError } = await supabase.rpc('actualizar_resena_huesped', {
+          p_link: linkId, p_resena_id: reviewIdToUpdate, p_propina_id: propina.id,
+        })
+        if (linkError) console.error('Error ligando reseña y propina:', linkError)
       }
 
       return propina.id
@@ -314,9 +315,14 @@ export function TipPage({ linkId }: Props) {
       publica: googleOpened && starRating >= 4,
     }
     if (existingId) {
-      const { error } = await supabase.from('resenas').update(fields).eq('id', existingId)
+      // RPC: anon no puede hacer UPDATE en resenas (antes este paso no guardaba nada, en silencio)
+      const { data: actualizada, error } = await supabase.rpc('actualizar_resena_huesped', {
+        p_link: linkId, p_resena_id: existingId,
+        p_estrellas: fields.estrellas, p_comentario: fields.comentario ?? '', p_publica: fields.publica,
+      })
       if (error) throw error
-      return existingId
+      if (actualizada) return existingId
+      // Si ya pasaron más de 30 min, se guarda como reseña nueva
     }
     const id = crypto.randomUUID()
     const { error } = await supabase
