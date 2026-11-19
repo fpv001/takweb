@@ -48,7 +48,9 @@ export default async function handler(req, res) {
     ['name', 'twitter:card', 'summary_large_image'], ['name', 'twitter:title', p.title],
     ['name', 'twitter:description', p.desc], ['name', 'twitter:image', img], ['name', 'description', p.desc],
   ].map(([a, k, v]) => `<meta ${a}="${k}" content="${esc(v)}" />`).join('\n    ')
-  html = html.replace(/<title>.*?<\/title>/, `<title>${esc(p.fallback ? p.title : `${p.title} · tak!`)}</title>\n    ${meta}`)
+  // Función como reemplazo: así un nombre con "$&" o "$`" no se interpreta como patrón especial
+  const head = `<title>${esc(p.fallback ? p.title : `${p.title} · tak!`)}</title>\n    ${meta}`
+  html = html.replace(/<title>.*?<\/title>/, () => head)
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')

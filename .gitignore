@@ -44,3 +44,6 @@ tools/
 
 # Build del panel (lo genera Vercel con npm --prefix app run build)
 /admin/
+
+# Auditorías de seguridad (no publicar)
+security/

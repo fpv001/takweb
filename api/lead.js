@@ -5,7 +5,9 @@ const LIMITES = { nombre: 120, negocio: 160, tipo: 40, correo: 200, mensaje: 300
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' })
-  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {}
+  let body
+  try { body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {} }
+  catch { return res.status(400).json({ error: 'Datos incompletos' }) }
   if (body.website) return res.status(200).json({ ok: true })
 
   const datos = Object.fromEntries(Object.keys(LIMITES).map(k => [k, String(body[k] ?? '').trim()]))

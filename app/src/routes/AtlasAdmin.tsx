@@ -677,7 +677,7 @@ function CrearUsuarioModal({ hotels, colaboradores, onClose, onSave }: {
 
   async function handleSave() {
     if (!email.trim() || !password.trim()) { setError('Email y contraseña son requeridos'); return }
-    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return }
+    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return }
     if ((rol === 'hotel_admin' || rol === 'colaborador') && !hotelId) { setError('Selecciona un negocio'); return }
     if (rol === 'colaborador' && !colaboradorId) { setError('Selecciona el colaborador asociado'); return }
 
