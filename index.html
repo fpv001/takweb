@@ -22,10 +22,10 @@
   <meta name="twitter:title" content="tak! — thanks are kind!" />
   <meta name="twitter:description" content="Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app." />
   <meta name="twitter:image" content="https://www.thanksarekind.com/public/assets/og-image.jpg" />
-  <link rel="stylesheet" href="styles.css?v=20261029-9" />
+  <link rel="stylesheet" href="styles.css?v=20261119-5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" integrity="sha512-aNMyYYxdIxIaot0Y1/PLuEu3eipGCmsEUBrUq+7aVyPGMFH8z0eTP0tkqAvv34fzN6z+201d3T8HPb1svWSKHQ==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
   <script src="demo.js?v=20261029-9" defer></script>
-  <script src="script.js?v=20261029-9" defer></script>
+  <script src="script.js?v=20261119-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -35,7 +35,8 @@
     </a>
     <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr-only">Abrir menú</span></button>
     <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a href="#como-funciona">Cómo funciona</a><a href="#negocios">Negocios</a><a href="#demo">Demo</a><a href="#preguntas">Preguntas</a>
+      <a href="#productos">Productos</a><a href="#como-funciona">Cómo funciona</a><a href="#precios">Precios</a><a href="#demo">Demo</a><a href="#preguntas">Preguntas</a>
+      <a class="button button-small button-ghost nav-login" href="/admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l4-4-4-4M14 12H4"/></svg>Entrar al panel</a>
       <a class="button button-small" href="#contacto">Hablemos</a>
     </nav>
   </header>
@@ -62,6 +63,47 @@
         </div>
         <div class="float float-score" aria-hidden="true"><b>★ 4.9</b><span>Recepción</span></div>
         <div class="float float-tip" aria-hidden="true"><span class="tip-dot">+</span><div><strong>Propina $50</strong><span>Opcional</span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="productos" aria-labelledby="productos-title">
+      <h2 id="productos-title">Dos formas de recibir <em>un gracias.</em></h2>
+      <p class="lead">Wristbands para reconocer a cada persona de tu equipo. Docks para que tus clientes califiquen el lugar desde la mesa. Todo llega al mismo panel.</p>
+      <ul class="products">
+        <li class="product">
+          <div class="product-art product-art--band"><img src="public/assets/three-stacked-wristbands.png" alt="Tres wristbands NFC tak! de silicona" loading="lazy" /></div>
+          <div class="product-body">
+            <span class="product-tag">Para tu equipo</span>
+            <h3>Wristband tak!</h3>
+            <p>Una pulsera NFC de silicona para cada colaborador. El cliente la toca con su teléfono y le deja una reseña directo a esa persona.</p>
+            <ul class="ticks ticks-coral">
+              <li>Reseña a nombre de quien atendió</li>
+              <li>Propina opcional, sin efectivo</li>
+              <li>Vinculada a la persona y su área</li>
+              <li>Ideal para hoteles, valet, spas y eventos</li>
+            </ul>
+          </div>
+        </li>
+        <li class="product">
+          <div class="product-art product-art--dock"><img src="public/assets/dock-tak.jpg" alt="Dock tak! coral con tarjeta de reseña de un restaurante en su ranura" loading="lazy" width="1600" height="900" />
+          </div>
+          <div class="product-body">
+            <span class="product-tag">Para tu restaurante</span>
+            <h3>Dock tak!</h3>
+            <p>Una base NFC para mesa, barra o recepción. El cliente la toca y califica su experiencia en el lugar, sin descargar nada.</p>
+            <ul class="ticks ticks-coral">
+              <li>Reseña del lugar por mesa o sucursal</li>
+              <li>Elige con foto lo que comió y califica cada platillo</li>
+              <li>Lleva al cliente a dejar su reseña en Google</li>
+              <li>Liga con el nombre e imagen de tu negocio</li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+      <div class="product-panel">
+        <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg></span>
+        <div><h3>Panel tak! incluido</h3><p>Reseñas, propinas, platillos y sucursales en un solo lugar. Accesos para gerentes y para cada colaborador, desde la web o como app en tu teléfono.</p></div>
+        <a class="button button-ghost button-small" href="#demo">Ver demo</a>
       </div>
     </section>
 
@@ -137,6 +179,62 @@
       </ul>
     </section>
 
+    <section class="section" id="precios" aria-labelledby="precios-title">
+      <h2 id="precios-title">Un plan para cada <em>tamaño de equipo.</em></h2>
+      <p class="lead">Precios mensuales en pesos mexicanos. Elige el que va con tu negocio y crece cuando lo necesites.</p>
+      <ul class="plans">
+        <li class="plan">
+          <div class="plan-head"><h3>tak! Essential</h3><span class="plan-badge">Entrada</span></div>
+          <p class="plan-price"><strong>$699</strong><span>MXN/mes</span></p>
+          <p class="plan-for">Para hostales, estéticas, valet parking y negocios pequeños.</p>
+          <ul class="plan-list">
+            <li>Dashboard con propinas totales y número de transacciones.</li>
+            <li>Analíticas básicas por empleado y periodo.</li>
+            <li>Reportes con marca tak!.</li>
+            <li>1 dock tak! incluido.</li>
+          </ul>
+          <a class="button button-ghost" href="#contacto" data-plan="Essential">Empezar con Essential</a>
+        </li>
+        <li class="plan plan--featured">
+          <div class="plan-head"><h3>tak! Business</h3><span class="plan-badge">Recomendado</span></div>
+          <p class="plan-price"><strong>$1,999</strong><span>MXN/mes</span></p>
+          <p class="plan-for">Para hoteles medianos y negocios con varios equipos.</p>
+          <ul class="plan-list">
+            <li>Hasta 100 empleados activos al mes.</li>
+            <li>Analíticas avanzadas y tendencias de propinas.</li>
+            <li>Comparativas por área, turno y empleado.</li>
+            <li>Personalización con el logo y colores del establecimiento.</li>
+            <li>Exportación de reportes y gestión de varios administradores.</li>
+            <li>Brazaletes NFC y docks cotizados según tus necesidades.</li>
+          </ul>
+          <a class="button" href="#contacto" data-plan="Business">Empezar con Business</a>
+        </li>
+        <li class="plan">
+          <div class="plan-head"><h3>tak! Enterprise</h3><span class="plan-badge plan-badge--pro">Pro</span></div>
+          <p class="plan-price"><small>Desde</small><strong>$4,999</strong><span>MXN/mes</span></p>
+          <p class="plan-for">Para hoteles grandes, resorts y grupos hoteleros.</p>
+          <ul class="plan-list">
+            <li>Hasta 300 empleados activos al mes.</li>
+            <li>Analíticas avanzadas y panel ejecutivo.</li>
+            <li>Marca blanca: experiencia y reportes con identidad del cliente.</li>
+            <li>Varias propiedades y permisos por ubicación.</li>
+            <li>Reportes consolidados y soporte prioritario.</li>
+            <li>Integraciones y configuración empresarial cotizadas según alcance.</li>
+            <li>Brazaletes NFC y docks cotizados según tus necesidades.</li>
+          </ul>
+          <a class="button button-ghost" href="#contacto" data-plan="Enterprise">Hablar con ventas</a>
+        </li>
+      </ul>
+      <div class="plan-addon">
+        <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="11" rx="2"/><path d="M3 17h18v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 7v3M10.5 8.5h3"/></svg></span>
+        <div><h3>Docks adicionales en Essential</h3><p>¿Más mesas, barras o sucursales? Agrega los docks que necesites. En Business y Enterprise los cotizamos con tu plan.</p></div>
+        <dl class="addon-prices">
+          <div><dt>Instalación</dt><dd><strong>$160</strong> MXN por dock</dd></div>
+          <div><dt>Uso en el sistema</dt><dd><strong>$40</strong> MXN/mes por dock</dd></div>
+        </dl>
+      </div>
+    </section>
+
     <section class="section" id="demo" aria-labelledby="demo-title">
       <div class="demo-head">
         <div>
@@ -164,12 +262,15 @@
     <section class="section" id="preguntas" aria-labelledby="faq-title">
       <h2 id="faq-title">Preguntas frecuentes</h2>
       <div class="faq-list">
-        <details><summary>¿Mis clientes necesitan una app?</summary><p>No. Acercan su teléfono a la wristband y todo se abre en el navegador.</p></details>
+        <details><summary>¿Mis clientes necesitan una app?</summary><p>No. Acercan su teléfono a la wristband o al dock y todo se abre en el navegador.</p></details>
+        <details><summary>¿Qué diferencia hay entre wristband y dock?</summary><p>La wristband la lleva cada colaborador: la reseña y la propina van a esa persona. El dock va en la mesa, barra o recepción: el cliente califica el lugar y sus platillos, y puede dejar su reseña en Google.</p></details>
+        <details><summary>¿Cuánto cuesta un dock adicional?</summary><p>El plan Essential incluye un dock. Cada dock adicional tiene una instalación de $160 MXN y un uso de $40 MXN al mes. En Business y Enterprise, los docks y brazaletes se cotizan según lo que necesite tu negocio.</p></details>
+        <details><summary>Ya tengo tak!, ¿cómo entro a mi panel?</summary><p>Con el botón <a href="/admin">Entrar al panel</a> hasta arriba, usando el correo y contraseña que te dimos de alta.</p></details>
         <details><summary>¿Cómo le llega la reseña a mi equipo?</summary><p>Cada wristband está vinculada a una persona y su área. La reseña queda a su nombre y tú la ves en tu panel.</p></details>
         <details><summary>¿La propina es obligatoria?</summary><p>No. Tus clientes pueden dejar solo una reseña, solo una propina o ambas. Ellos deciden.</p></details>
         <details><summary>¿Qué registros tengo?</summary><p>Reseñas y propinas por colaborador, área y fecha, para que sepas qué está funcionando.</p></details>
         <details><summary>¿Funciona con turistas extranjeros?</summary><p>Sí. La experiencia está pensada para que cualquier huésped pueda agradecer desde su teléfono, venga de donde venga.</p></details>
-        <details><summary>¿Cuánto cuesta?</summary><p>Depende del tamaño de tu equipo y tus áreas. Escríbenos y armamos una propuesta para tu negocio.</p></details>
+        <details><summary>¿Cuánto cuesta?</summary><p>Hay tres planes mensuales: Essential desde $699, Business desde $1,999 y Enterprise desde $4,999 MXN al mes. <a href="#precios">Ver planes</a>.</p></details>
         <details><summary>¿Cómo empiezo?</summary><p>Cuéntanos sobre tu negocio en el formulario y nos pondremos en contacto contigo.</p></details>
       </div>
     </section>

@@ -47,7 +47,7 @@ if ('IntersectionObserver' in window) {
       if (entry.isIntersecting) navLinks.forEach((link) => link.removeAttribute('aria-current'));
     });
   }, { rootMargin: '-45% 0px -50% 0px' });
-  document.querySelectorAll('.hero, #resenas, #beneficios, #contacto').forEach((section) => clearCurrent.observe(section));
+  document.querySelectorAll('.hero, #negocios, #resenas, #beneficios, #contacto').forEach((section) => clearCurrent.observe(section));
 }
 
 const motionSections = [...document.querySelectorAll('main > section')];
@@ -305,4 +305,12 @@ form.addEventListener('submit', (event) => {
       submitButton.disabled = false;
       submitButton.textContent = 'Quiero conocer tak!';
     });
+});
+
+// Botones de plan: prellenan el mensaje del formulario.
+document.querySelectorAll('[data-plan]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const message = document.getElementById('message');
+    if (message && !message.value.trim()) message.value = `Me interesa el plan tak! ${link.dataset.plan}.`;
+  });
 });
