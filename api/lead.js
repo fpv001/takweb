@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer'
+
 const url = process.env.VITE_SUPABASE_URL
 const key = process.env.VITE_SUPABASE_ANON_KEY
 
@@ -21,5 +23,21 @@ export default async function handler(req, res) {
     body: JSON.stringify({ p_nombre: datos.nombre, p_negocio: datos.negocio, p_tipo: datos.tipo, p_correo: datos.correo, p_mensaje: datos.mensaje }),
   })
   if (!r.ok) return res.status(502).json({ error: 'No se pudo registrar' })
+  await avisarPorCorreo(datos).catch(e => console.error('lead: correo no enviado', e.message))
   res.status(200).json({ ok: true })
+}
+
+// Copia del lead a hello@ por el SMTP de Titan. Si falla, el lead ya quedó guardado en Supabase.
+async function avisarPorCorreo(d) {
+  const user = process.env.SMTP_USER
+  const pass = process.env.SMTP_PASS
+  if (!user || !pass) return
+  const transporte = nodemailer.createTransport({ host: 'smtp.titan.email', port: 465, secure: true, auth: { user, pass } })
+  await transporte.sendMail({
+    from: `tak! <${user}>`,
+    to: process.env.LEADS_TO || 'hello@thanksarekind.com',
+    replyTo: d.correo,
+    subject: `Nuevo interesado: ${d.negocio} (${d.tipo})`,
+    text: `Nombre: ${d.nombre}\nNegocio: ${d.negocio}\nTipo: ${d.tipo}\nCorreo: ${d.correo}\n\n${d.mensaje}\n\nTambién está en el panel de admin de tak!, en Interesados.`,
+  })
 }
