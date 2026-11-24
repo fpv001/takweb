@@ -3,7 +3,7 @@ import { useStickyState } from '@/lib/sticky'
 import { supabase } from '@/integrations/supabase/client'
 import { getInitials, formatMXN } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
-import { crearUsuario } from '@/lib/edgeFunctions'
+import { AccesosPanel } from '@/components/AccesosPanel'
 import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/components/ExpedienteModal'
 import { HotelDashboard } from '@/routes/HotelDashboard'
 import { exportCSV, formatDateFull } from '@/lib/export'
@@ -25,7 +25,7 @@ type Dock = { id: string; hotel_id: string }
 type Colaborador = { id: string; nombre: string; puesto: string | null; hotel_id: string; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null }
 type Propina = { id: string; monto_total: number; estado: string; hotel_id: string; colaborador_id: string; created_at: string }
 type Lead = { id: string; nombre: string; negocio: string; tipo: string; correo: string; mensaje: string; estado: string; notas: string | null; created_at: string }
-type Tab = 'resumen' | 'interesados' | 'hoteles' | 'colaboradores' | 'propinas'
+type Tab = 'resumen' | 'interesados' | 'hoteles' | 'colaboradores' | 'propinas' | 'accesos'
 
 const ESTADOS_LEAD: Record<string, { label: string; tone: Tone }> = {
   nuevo: { label: 'Nuevo', tone: 'brand' },
@@ -53,6 +53,7 @@ const NAV = [
   { id: 'hoteles', label: 'Negocios', icon: 'hotel' },
   { id: 'colaboradores', label: 'Colaboradores', icon: 'users' },
   { id: 'propinas', label: 'Propinas', icon: 'tip' },
+  { id: 'accesos', label: 'Accesos', icon: 'key' },
 ]
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -72,7 +73,6 @@ export function AtlasAdmin() {
   const [hotelModal, setHotelModal] = useState<Hotel | 'new' | null>(null)
   const [hotelDetalle, setHotelDetalle] = useStickyState<string | null>('tak:admin:negocio', null)
   const [colModal, setColModal] = useState<Colaborador | 'new' | null>(null)
-  const [usuarioModal, setUsuarioModal] = useState(false)
   const [expediente, setExpediente] = useState<Colaborador | null>(null)
 
   useEffect(() => { loadAll() }, [])
@@ -271,7 +271,7 @@ export function AtlasAdmin() {
                   action={
                     <>
                       <Btn variant="secondary" icon="download" onClick={exportarColaboradores}>Exportar CSV</Btn>
-                      <Btn variant="secondary" icon="key" onClick={() => setUsuarioModal(true)}>Crear acceso</Btn>
+                      <Btn variant="secondary" icon="key" onClick={() => setTab('accesos')}>Accesos</Btn>
                       <Btn icon="plus" onClick={() => setColModal('new')}>Nuevo colaborador</Btn>
                     </>
                   }
@@ -362,6 +362,10 @@ export function AtlasAdmin() {
             )}
 
             {/* ══ PROPINAS ══ */}
+            {tab === 'accesos' && (
+              <AccesosPanel miRol="atlas_admin" hotels={hotels} colaboradores={colaboradores} />
+            )}
+
             {tab === 'propinas' && (
               <>
                 <PageHeader title="Propinas" subtitle="Historial completo de transacciones" action={<Btn variant="secondary" icon="download" onClick={exportarPropinas}>Exportar CSV</Btn>} />
@@ -415,14 +419,6 @@ export function AtlasAdmin() {
           hotels={hotels}
           onClose={() => setColModal(null)}
           onSave={() => { setColModal(null); loadAll() }}
-        />
-      )}
-      {usuarioModal && (
-        <CrearUsuarioModal
-          hotels={hotels}
-          colaboradores={colaboradores}
-          onClose={() => setUsuarioModal(false)}
-          onSave={() => { setUsuarioModal(false); loadAll() }}
         />
       )}
 
@@ -652,90 +648,6 @@ function ColaboradorModal({ colaborador, hotels, onClose, onSave }: { colaborado
       <ModalActions>
         <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={handleSave} disabled={saving} loading={saving}>{saving ? 'Guardando…' : 'Guardar'}</Btn>
-      </ModalActions>
-    </Modal>
-  )
-}
-
-// ─── Crear Usuario Modal ──────────────────────────────────────────────────────
-
-function CrearUsuarioModal({ hotels, colaboradores, onClose, onSave }: {
-  hotels: Hotel[]
-  colaboradores: Colaborador[]
-  onClose: () => void
-  onSave: () => void
-}) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [rol, setRol] = useState<'hotel_admin' | 'colaborador' | 'atlas_admin'>('hotel_admin')
-  const [hotelId, setHotelId] = useState(hotels[0]?.id ?? '')
-  const [colaboradorId, setColaboradorId] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  const colsDelHotel = colaboradores.filter(c => c.hotel_id === hotelId)
-
-  async function handleSave() {
-    if (!email.trim() || !password.trim()) { setError('Email y contraseña son requeridos'); return }
-    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return }
-    if ((rol === 'hotel_admin' || rol === 'colaborador') && !hotelId) { setError('Selecciona un negocio'); return }
-    if (rol === 'colaborador' && !colaboradorId) { setError('Selecciona el colaborador asociado'); return }
-
-    setSaving(true)
-    setError('')
-    const err = await crearUsuario({
-      email: email.trim(),
-      password,
-      rol,
-      hotel_id: rol !== 'atlas_admin' ? hotelId : null,
-      colaborador_id: rol === 'colaborador' ? colaboradorId : null,
-    })
-    if (err) { setError(err); setSaving(false); return }
-    onSave()
-  }
-
-  return (
-    <Modal title="Crear acceso" onClose={onClose}>
-      <FormField label="Rol">
-        <Select value={rol} onChange={v => setRol(v as any)}>
-          <option value="hotel_admin">Gerente o administrador de negocio</option>
-          <option value="colaborador">Colaborador</option>
-          <option value="atlas_admin">Admin de tak!</option>
-        </Select>
-      </FormField>
-
-      {rol !== 'atlas_admin' && (
-        <FormField label="Negocio">
-          <Select value={hotelId} onChange={v => { setHotelId(v); setColaboradorId('') }}>
-            {hotels.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
-          </Select>
-        </FormField>
-      )}
-
-      {rol === 'colaborador' && (
-        <FormField label="Colaborador" hint="El perfil de colaborador que usará este acceso">
-          <Select value={colaboradorId} onChange={setColaboradorId}>
-            <option value="">Selecciona un colaborador</option>
-            {colsDelHotel.map(c => <option key={c.id} value={c.id}>{c.nombre} — {c.puesto ?? 'Sin puesto'}</option>)}
-          </Select>
-        </FormField>
-      )}
-
-      <FormField label="Correo electrónico">
-        <Input value={email} onChange={setEmail} placeholder="correo@ejemplo.com" type="email" inputMode="email" autoComplete="off" />
-      </FormField>
-
-      <FormField label="Contraseña" hint="Mínimo 6 caracteres">
-        <Input value={password} onChange={setPassword} placeholder="••••••••" type="password" autoComplete="new-password" />
-      </FormField>
-
-      {error && <Alert>{error}</Alert>}
-
-      <ModalActions>
-        <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={handleSave} disabled={saving} loading={saving}>
-          {saving ? 'Creando…' : 'Crear acceso'}
-        </Btn>
       </ModalActions>
     </Modal>
   )

@@ -934,3 +934,68 @@ body:has(.tk-launch) { background: var(--brand-500); }
 :root:not([data-theme="dark"]) .tk-side__panel {
   background: linear-gradient(to bottom, var(--brand-500) env(safe-area-inset-top), transparent env(safe-area-inset-top)), var(--bg);
 }
+
+/* ── Ventana plegable del dock: "¿A quién quieres agradecer?" ─────────────── */
+.tk-sheet__scrim { position: fixed; inset: 0; z-index: 40; background: rgb(40 16 14 / 40%); opacity: 0; pointer-events: none; transition: opacity var(--d-enter) var(--ease); }
+.tk-sheet__scrim[data-open] { opacity: 1; pointer-events: auto; }
+.tk-sheet {
+  position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto;
+  display: flex; flex-direction: column; max-height: 88vh; max-height: 88dvh;
+  background: var(--surface); color: var(--text); border-radius: 30px 30px 0 0;
+  box-shadow: 0 -14px 44px rgb(126 42 37 / 26%);
+  transition: transform 420ms cubic-bezier(.22, 1.2, .36, 1);
+  will-change: transform;
+}
+.tk-sheet[data-dragging] { transition: none; }
+.tk-sheet__head { flex-shrink: 0; padding: var(--s-3) var(--s-6) var(--s-4); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.tk-sheet[data-dragging] .tk-sheet__head { cursor: grabbing; }
+.tk-sheet__grabber { position: relative; display: block; width: 44px; height: 5px; margin: 0 auto var(--s-4); padding: 0; border: 0; border-radius: var(--r-full); background: var(--border-strong); cursor: inherit; }
+.tk-sheet__grabber::after { content: ''; position: absolute; inset: -12px -40px; }
+.tk-sheet__title { font: var(--t-h3); text-align: center; }
+.tk-sheet__sub { margin-top: 2px; font: var(--t-small); color: var(--text-muted); text-align: center; }
+.tk-sheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--s-4) calc(var(--s-6) + env(safe-area-inset-bottom)); }
+.tk-sheet:not([data-open]) .tk-sheet__body { visibility: hidden; transition: visibility 0s linear 420ms; }
+@media (prefers-reduced-motion: reduce) { .tk-sheet, .tk-sheet__scrim { transition: none; } }
+
+.tk-team-search { margin-bottom: var(--s-3); }
+.tk-team-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4) var(--s-3); }
+@media (max-width: 340px) { .tk-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tk-team { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); padding: var(--s-2) 0; border: 0; background: none; color: var(--text); text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; min-width: 0; }
+.tk-team .tk-avatar { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--brand-100); transition: transform var(--d-fast) ease, box-shadow var(--d-fast) ease; }
+.tk-team:hover .tk-avatar { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--brand-300); }
+.tk-team:active .tk-avatar { transform: scale(.94); }
+.tk-team:focus-visible { outline: none; }
+.tk-team:focus-visible .tk-avatar { box-shadow: var(--focus); }
+.tk-team__name { font: var(--t-label); max-width: 100%; overflow-wrap: anywhere; text-transform: capitalize; }
+.tk-team__role { margin-top: -6px; font: var(--t-caption); color: var(--text-muted); max-width: 100%; overflow-wrap: anywhere; }
+.tk-team__role::first-letter { text-transform: uppercase; }
+.tk-sheet__alt { display: flex; justify-content: center; margin-top: var(--s-6); }
+
+/* Panel: configuración de equipo del dock */
+.tk-modes { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
+.tk-mode { display: flex; align-items: flex-start; gap: var(--s-3); padding: var(--s-3) var(--s-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); cursor: pointer; }
+.tk-mode:has(input:checked) { border-color: var(--brand-500); background: var(--brand-50); }
+.tk-mode:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+.tk-mode input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--brand-700); flex-shrink: 0; }
+.tk-mode__title { display: block; font: var(--t-label); }
+.tk-mode__desc { display: block; font: var(--t-small); color: var(--text-muted); }
+.tk-picklist { display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
+.tk-pick { display: flex; align-items: center; gap: var(--s-3); min-height: 56px; padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--border); }
+.tk-pick:last-child { border-bottom: 0; }
+.tk-pick[data-off] { opacity: .55; }
+.tk-pick label { display: flex; align-items: center; gap: var(--s-3); flex: 1; min-width: 0; cursor: pointer; }
+.tk-pick input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--brand-700); flex-shrink: 0; }
+.tk-pick__text { display: flex; flex-direction: column; min-width: 0; }
+.tk-pick__name { font: var(--t-label); overflow-wrap: anywhere; }
+.tk-pick__role { font: var(--t-caption); color: var(--text-muted); }
+.tk-pick__order { display: flex; gap: 2px; }
+.tk-pick-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); flex-wrap: wrap; margin-bottom: var(--s-2); }
+.tk-pick-bar__count { font: var(--t-small); color: var(--text-muted); }
+.tk-setup { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); margin-bottom: var(--s-6); }
+@media (max-width: 720px) { .tk-setup { grid-template-columns: 1fr; } }
+.tk-setup__step { display: flex; gap: var(--s-3); align-items: flex-start; padding: var(--s-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.tk-setup__n { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: var(--surface-sunken); font: var(--t-label); color: var(--text-muted); }
+.tk-setup__step[data-done] .tk-setup__n { background: var(--success-bg); color: var(--success); }
+.tk-setup__title { font: var(--t-label); }
+.tk-setup__text { font: var(--t-small); color: var(--text-muted); }
+.tk-setup__step .tk-btn { margin-top: var(--s-2); }

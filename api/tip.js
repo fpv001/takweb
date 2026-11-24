@@ -9,6 +9,11 @@ async function preview(kind, id) {
   if (kind === 'r') {
     const d = await getDock(id).catch(() => null)
     if (!d) return null
+    if (d.agradecer) return {
+      title: `${d.pregunta || '¿A quién quieres agradecer?'} · ${d.negocio}`,
+      desc: `${d.punto}. Agradece a quien te atendió con tak!`,
+      path: `/r/${id}`,
+    }
     return {
       title: `Cuéntanos de tu visita a ${d.negocio}`,
       desc: `${d.punto}. ${d.restaurante ? 'Califica tu experiencia y lo que comiste con tak!' : 'Deja tu reseña con tak!'}`,

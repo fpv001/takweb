@@ -3,7 +3,7 @@ import { useStickyState } from '@/lib/sticky'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { getInitials, formatMXN } from '@/lib/utils'
-import { crearUsuario } from '@/lib/edgeFunctions'
+import { AccesosPanel } from '@/components/AccesosPanel'
 import { exportCSV, formatDateFull } from '@/lib/export'
 import { useRealtimeHotel, useRealtimeResenas } from '@/lib/realtime'
 import { fetchResenas, type Resena } from '@/lib/resenas'
@@ -27,8 +27,16 @@ import { TrendBars, RatingBreakdown, KpiSpark, TopRings } from '@/components/Sta
 type Hotel = { id: string; nombre: string; tipo: string | null; stripe_api_key: string | null; google_place_id: string | null; modulos: Partial<{ docks: boolean; propinas: boolean }> | null }
 type Colaborador = { id: string; nombre: string; puesto: string | null; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null; hotel_id: string }
 type Propina = { id: string; monto_total: number; estado: string; colaborador_id: string; created_at: string }
-type PuntoResena = { id: string; hotel_id: string; sucursal_id: string | null; nombre: string; link_unico: string; activo: boolean; created_at: string }
-type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'sucursales' | 'docks' | 'platillos' | 'equipos' | 'leaderboard' | 'configuracion'
+type ModoDock = 'resena' | 'agradecer' | 'ambos'
+type PuntoResena = { id: string; hotel_id: string; sucursal_id: string | null; nombre: string; link_unico: string; activo: boolean; created_at: string; modo: ModoDock | null; pregunta: string | null }
+type DockColaborador = { punto_id: string; colaborador_id: string; orden: number }
+const PREGUNTA_DOCK = '¿A quién quieres agradecer?'
+const MODOS_DOCK: { value: ModoDock; label: string; desc: string }[] = [
+  { value: 'resena', label: 'Solo reseña del lugar', desc: 'Piden estrellas y comentario del negocio. Es lo que hacen los docks hoy.' },
+  { value: 'agradecer', label: 'Agradecer a alguien del equipo', desc: 'Se abre la ventana con las fotos del equipo que elijas abajo. Al tocar a alguien entra a su flujo de agradecer.' },
+  { value: 'ambos', label: 'Ambos', desc: 'La ventana del equipo y, abajo, “Prefiero calificar el lugar” para dejar la reseña del negocio.' },
+]
+type Tab = 'resumen' | 'equipo' | 'propinas' | 'resenas' | 'sucursales' | 'docks' | 'platillos' | 'equipos' | 'leaderboard' | 'accesos' | 'configuracion'
 type FiltroEstrellas = 'todas' | '5' | '4' | 'bajas'
 type FiltroComentario = 'todas' | 'mensaje' | 'calificacion' | 'bajas' | 'altas'
 
@@ -61,6 +69,7 @@ const NAV = [
   { id: 'platillos', label: 'Platillos', icon: 'camera' },
   { id: 'equipos', label: 'Repartos', icon: 'split' },
   { id: 'leaderboard', label: 'Ranking', icon: 'trophy' },
+  { id: 'accesos', label: 'Accesos', icon: 'key' },
   { id: 'configuracion', label: 'Configuración', icon: 'settings' },
 ]
 
@@ -74,7 +83,8 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   const [resenas, setResenas] = useState<Resena[]>([])
   const [loading, setLoading] = useState(true)
   const [colModal, setColModal] = useState<Colaborador | 'new' | null>(null)
-  const [usuarioModal, setUsuarioModal] = useState(false)
+  // Rol de quien usa el panel: el gerente, o el admin de tak! que entró a este negocio
+  const { perfil } = useAuth()
   const [toast, setToast] = useState<string | null>(null)
   const [colDetalle, setColDetalle] = useStickyState<string | null>(`tak:negocio:${hotelId}:colaborador`, null)
   const [expediente, setExpediente] = useState<Colaborador | null>(null)
@@ -84,6 +94,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   const [filtroColab, setFiltroColab] = useState('all')
   const [filtroOrigen, setFiltroOrigen] = useState('todos')
   const [docks, setDocks] = useState<PuntoResena[]>([])
+  const [dockCols, setDockCols] = useState<DockColaborador[]>([])
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [filtroSucursal, setFiltroSucursal] = useState('all')
   const [dockModal, setDockModal] = useState<PuntoResena | 'new' | null>(null)
@@ -132,7 +143,13 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
     setGooglePlaceId(hotelData?.google_place_id ?? '')
     setColaboradores((cols as Colaborador[]) ?? [])
     setPropinas((props as Propina[]) ?? [])
-    setDocks((dk as PuntoResena[]) ?? [])
+    const listaDocks = (dk as PuntoResena[]) ?? []
+    setDocks(listaDocks)
+    if (listaDocks.length) {
+      const { data: dc, error: errorDc } = await supabase.from('dock_colaboradores').select('punto_id, colaborador_id, orden').in('punto_id', listaDocks.map(d => d.id)).order('orden')
+      if (errorDc) console.error('Error cargando equipo de docks:', errorDc)
+      setDockCols((dc as DockColaborador[]) ?? [])
+    } else setDockCols([])
     const listaPropinas = (props as Propina[]) ?? []
     const colPorPropina = new Map(listaPropinas.map(p => [p.id, p.colaborador_id]))
     const res = await fetchResenas({ hotel_id: hotelId }, listaPropinas.map(p => p.id))
@@ -215,20 +232,24 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
     const cs = conEstrellasTab.filter(r => r.colaborador_id === c.id)
     return { id: c.id, nombre: c.nombre, n: cs.length, promedio: promedioDe(cs) }
   }).filter(c => c.n > 0).sort((a, b) => b.promedio - a.promedio || b.n - a.n)
-  // Las reseñas de dock no tienen colaborador: se identifican por su dock
-  const nombreAutor = (r: Resena) => r.punto_id
-    ? `Dock: ${docks.find(d => d.id === r.punto_id)?.nombre ?? '—'}`
-    : colaboradores.find(c => c.id === r.colaborador_id)?.nombre ?? '—'
+  // Reseña del lugar: solo dock. Agradecimiento desde un dock: trae colaborador y dock -> "Ana · vía Barra"
+  const nombreAutor = (r: Resena) => {
+    const dock = r.punto_id ? docks.find(d => d.id === r.punto_id)?.nombre ?? '—' : null
+    const col = r.colaborador_id ? colaboradores.find(c => c.id === r.colaborador_id)?.nombre ?? '—' : null
+    if (col && dock) return `${col} · vía ${dock}`
+    return dock ? `Dock: ${dock}` : col ?? '—'
+  }
   // Vista por sucursal: docks filtrados y resumen de cada sucursal
   const docksFiltrados = filtroSucursal === 'all' ? docks : docks.filter(d => d.sucursal_id === filtroSucursal)
   const statsSucursales: Record<string, SucursalStats> = Object.fromEntries(sucursales.map(s => {
     const ids = new Set(docks.filter(d => d.sucursal_id === s.id).map(d => d.id))
-    const rs = resenas.filter(r => r.punto_id !== null && ids.has(r.punto_id))
+    const rs = resenas.filter(r => r.punto_id !== null && ids.has(r.punto_id) && !r.colaborador_id)
     return [s.id, { docks: ids.size, resenas: rs.length, promedio: promedioDe(rs) }]
   }))
 
   const porDock = docks.map(d => {
-    const ds = conEstrellasTab.filter(r => r.punto_id === d.id)
+    // Solo reseñas del lugar; los agradecimientos cuentan para su colaborador
+    const ds = conEstrellasTab.filter(r => r.punto_id === d.id && !r.colaborador_id)
     return { id: d.id, nombre: d.nombre, n: ds.length, promedio: promedioDe(ds) }
   }).filter(d => d.n > 0).sort((a, b) => b.promedio - a.promedio || b.n - a.n)
   const previewPlaceId = limpiarPlaceId(googlePlaceId)
@@ -236,7 +257,10 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
   const mods = modulosDe(hotel)
   // Pestañas de propinas solo si el negocio tiene el módulo activo
   const SOLO_PROPINAS: Tab[] = ['propinas', 'equipo', 'equipos', 'leaderboard']
-  const navItems = NAV.filter(n => (mods.propinas || !SOLO_PROPINAS.includes(n.id as Tab)) && (n.id !== 'platillos' || et.tipo === 'restaurante'))
+  const esAtlas = perfil?.rol === 'atlas_admin'
+  const navItems = NAV.filter(n => (mods.propinas || !SOLO_PROPINAS.includes(n.id as Tab)) && (n.id !== 'platillos' || et.tipo === 'restaurante')
+    // Accesos: el gerente administra los de sus colaboradores (requiere el módulo); tak! siempre (crea gerentes)
+    && (n.id !== 'accesos' || esAtlas || mods.propinas))
 
   const totalPropinas = propinas.reduce((s, p) => s + p.monto_total, 0)
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -267,7 +291,10 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
 
   const mainContent = (
     <PageContent>
-      {dockModal !== null && <DockModal punto={dockModal === 'new' ? null : dockModal} hotelId={hotelId} sucursales={sucursales} sucursalInicial={filtroSucursal !== 'all' ? filtroSucursal : null} nombreNegocio={hotel?.nombre ?? ''} onClose={() => setDockModal(null)} onSave={() => { setDockModal(null); loadAll() }} />}
+      {dockModal !== null && <DockModal punto={dockModal === 'new' ? null : dockModal} hotelId={hotelId} sucursales={sucursales} sucursalInicial={filtroSucursal !== 'all' ? filtroSucursal : null} nombreNegocio={hotel?.nombre ?? ''}
+        colaboradores={colaboradores} asignados={dockModal === 'new' ? [] : dockCols.filter(x => x.punto_id === dockModal.id)} equipoDisponible={mods.propinas}
+        onIrEquipo={() => { setDockModal(null); setTab('equipo') }}
+        onClose={() => setDockModal(null)} onSaved={loadAll} />}
       {loading ? <Spinner /> : (
         <>
           {/* ══ RESUMEN ══ */}
@@ -343,7 +370,7 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                 subtitle={`${colaboradores.filter(c => c.activo).length} colaboradores activos`}
                 action={
                   <>
-                    <Btn variant="secondary" icon="key" onClick={() => setUsuarioModal(true)}>Crear acceso</Btn>
+                    <Btn variant="secondary" icon="key" onClick={() => setTab('accesos')}>Accesos</Btn>
                     <Btn icon="plus" onClick={() => setColModal('new')}>Nuevo colaborador</Btn>
                   </>
                 }
@@ -568,14 +595,55 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
           {tab === 'docks' && (
             <>
               <PageHeader
-                title="Docks de reseñas"
-                subtitle={`Placas NFC para que los huéspedes dejen una reseña en mesa, barra o recepción de tu ${et.singular}. Sin propina ni colaborador.`}
+                title="Docks"
+                subtitle={`Placas NFC en mesa, barra o recepción de tu ${et.singular}. Cada dock puede pedir reseña del lugar, mostrar a tu equipo para agradecerle, o ambas.`}
                 action={sucursales.length > 0 ? <Btn icon="plus" onClick={() => setDockModal('new')}>Nuevo dock</Btn> : undefined}
               />
               {sucursales.length === 0 ? (
                 <EmptyState icon="hotel" title="Primero crea una sucursal" text="Cada dock pertenece a una sucursal. Crea la tuya en la pestaña Sucursales." action={<Btn variant="secondary" onClick={() => setTab('sucursales')}>Ir a Sucursales</Btn>} />
               ) : (
                 <>
+                  {(() => {
+                    // Checklist de setup: se oculta cuando todo está listo
+                    const activos = colaboradores.filter(c => c.activo)
+                    const sinFoto = activos.filter(c => !c.foto_url).length
+                    const conEquipo = docks.filter(d => d.modo && d.modo !== 'resena').length
+                    const equipoListo = !mods.propinas || (activos.length > 0 && sinFoto === 0)
+                    if (docks.length > 0 && equipoListo) return null
+                    return (
+                      <div className="tk-setup" aria-label="Pasos para configurar tus docks">
+                        <div className="tk-setup__step" data-done="">
+                          <span className="tk-setup__n"><Icon name="check" /></span>
+                          <div>
+                            <p className="tk-setup__title">Sucursales</p>
+                            <p className="tk-setup__text">{sucursales.length} {sucursales.length === 1 ? 'sucursal' : 'sucursales'}</p>
+                          </div>
+                        </div>
+                        {mods.propinas && (
+                          <div className="tk-setup__step" data-done={equipoListo || undefined}>
+                            <span className="tk-setup__n">{equipoListo ? <Icon name="check" /> : '2'}</span>
+                            <div>
+                              <p className="tk-setup__title">Equipo con foto</p>
+                              <p className="tk-setup__text">
+                                {activos.length === 0 ? 'Agrega a tu equipo para que aparezca en los docks.'
+                                  : sinFoto > 0 ? `${activos.length} activos, ${sinFoto} sin foto. Con foto los clientes los reconocen.`
+                                  : `${activos.length} activos, todos con foto.`}
+                              </p>
+                              {!equipoListo && <Btn small variant="secondary" onClick={() => setTab('equipo')}>Ir a Mi equipo</Btn>}
+                            </div>
+                          </div>
+                        )}
+                        <div className="tk-setup__step" data-done={docks.length > 0 || undefined}>
+                          <span className="tk-setup__n">{docks.length > 0 ? <Icon name="check" /> : mods.propinas ? '3' : '2'}</span>
+                          <div>
+                            <p className="tk-setup__title">Docks</p>
+                            <p className="tk-setup__text">{docks.length === 0 ? 'Crea un dock, elige qué muestra y programa la placa con su enlace.' : `${docks.length} ${docks.length === 1 ? 'dock' : 'docks'}, ${conEquipo} con agradecimiento.`}</p>
+                            {docks.length === 0 && <Btn small icon="plus" onClick={() => setDockModal('new')}>Nuevo dock</Btn>}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
                   <FormField label="Ver por sucursal">
                     <Select value={filtroSucursal} onChange={setFiltroSucursal}>
                       <option value="all">Todas las sucursales</option>
@@ -585,17 +653,27 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                   {docksFiltrados.length === 0 ? (
                     <EmptyState icon="card" title="Sin docks en esta vista" text="Crea un dock para programar su placa NFC con el enlace." action={<Btn icon="plus" onClick={() => setDockModal('new')}>Nuevo dock</Btn>} />
                   ) : (
-                <Table headers={['Dock', 'Sucursal', 'Enlace', 'Estado', 'Reseñas', 'Promedio', '']} numCols={[4, 5]}>
+                <Table headers={['Dock', 'Sucursal', 'Muestra', 'Enlace', 'Estado', 'Reseñas', 'Agradecimientos', 'Promedio', '']} numCols={[5, 6, 7]}>
                   {docksFiltrados.map(d => {
-                    const rs = resenas.filter(r => r.punto_id === d.id)
+                    const deDock = resenas.filter(r => r.punto_id === d.id)
+                    const rs = deDock.filter(r => !r.colaborador_id)
+                    const gracias = deDock.length - rs.length
                     const prom = promedioDe(rs)
+                    const modo = d.modo ?? 'resena'
+                    const nEquipo = dockCols.filter(x => x.punto_id === d.id && colaboradores.some(c => c.id === x.colaborador_id && c.activo)).length
                     return (
                       <Tr key={d.id}>
                         <Td bold>{d.nombre}</Td>
                         <Td muted>{sucursales.find(s => s.id === d.sucursal_id)?.nombre ?? '—'}</Td>
+                        <Td>
+                          {modo === 'resena' ? <Badge text="Reseña" tone="neutral" />
+                            : nEquipo === 0 ? <Badge text="Sin equipo: muestra reseña" tone="warning" />
+                            : <Badge text={`${modo === 'ambos' ? 'Ambos' : 'Agradecer'} · ${nEquipo}`} tone="success" />}
+                        </Td>
                         <Td><CopyUrl url={`${RESENA_BASE_URL}/${d.link_unico}`} /></Td>
                         <Td><ActiveBadge activo={d.activo} /></Td>
                         <Td right muted>{rs.length}</Td>
+                        <Td right muted>{modo === 'resena' && gracias === 0 ? '—' : gracias}</Td>
                         <Td right bold>{prom > 0 ? prom.toFixed(1) : '—'}</Td>
                         <Td>
                           <div className="tk-row-actions">
@@ -611,6 +689,11 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
                 </>
               )}
             </>
+          )}
+
+          {tab === 'accesos' && (
+            <AccesosPanel miRol={esAtlas ? 'atlas_admin' : 'hotel_admin'} hotelId={hotelId}
+              hotels={hotel ? [{ id: hotel.id, nombre: hotel.nombre }] : []} colaboradores={colaboradores} />
           )}
 
           {/* ══ EQUIPOS ══ */}
@@ -740,7 +823,6 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
         </SubpageLayout>
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}
         {colModal !== null && <HotelColModal colaborador={colModal === 'new' ? null : colModal} hotelId={hotelId} nombreNegocio={hotel?.nombre ?? ''} onClose={() => setColModal(null)} onSave={() => { setColModal(null); loadAll() }} />}
-        {usuarioModal && <CrearAccesoModal hotelId={hotelId} colaboradores={colaboradores} onClose={() => setUsuarioModal(false)} onSave={() => setUsuarioModal(false)} />}
         {expediente && <ExpedienteModal colaborador={expediente as ColaboradorCompleto} onClose={() => setExpediente(null)} onSave={() => { setExpediente(null); loadAll() }} />}
         {deleteTarget && <ConfirmDeleteColaborador colaborador={deleteTarget} propinasCount={propinas.filter(p => p.colaborador_id === deleteTarget.id).length} onClose={() => setDeleteTarget(null)} onDeleted={() => { setDeleteTarget(null); loadAll() }} />}
       </>
@@ -752,7 +834,6 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
       {mainContent}
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
       {colModal !== null && <HotelColModal colaborador={colModal === 'new' ? null : colModal} hotelId={hotelId} nombreNegocio={hotel?.nombre ?? ''} onClose={() => setColModal(null)} onSave={() => { setColModal(null); loadAll() }} />}
-      {usuarioModal && <CrearAccesoModal hotelId={hotelId} colaboradores={colaboradores} onClose={() => setUsuarioModal(false)} onSave={() => setUsuarioModal(false)} />}
 
       {expediente && <ExpedienteModal colaborador={expediente as ColaboradorCompleto} onClose={() => setExpediente(null)} onSave={() => { setExpediente(null); loadAll() }} />}
       {deleteTarget && <ConfirmDeleteColaborador colaborador={deleteTarget} propinasCount={propinas.filter(p => p.colaborador_id === deleteTarget.id).length} onClose={() => setDeleteTarget(null)} onDeleted={() => { setDeleteTarget(null); loadAll() }} />}
@@ -860,43 +941,28 @@ function ConfirmDeleteColaborador({ colaborador, propinasCount, onClose, onDelet
   )
 }
 
-function CrearAccesoModal({ hotelId, colaboradores, onClose, onSave }: { hotelId: string; colaboradores: Colaborador[]; onClose: () => void; onSave: () => void }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [colaboradorId, setColaboradorId] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  async function handleSave() {
-    if (!email.trim() || !password.trim()) { setError('Email y contraseña son requeridos'); return }
-    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return }
-    if (!colaboradorId) { setError('Selecciona el colaborador'); return }
-    setSaving(true); setError('')
-    const { crearUsuario } = await import('@/lib/edgeFunctions')
-    const err = await crearUsuario({ email: email.trim(), password, rol: 'colaborador', hotel_id: hotelId, colaborador_id: colaboradorId })
-    if (err) { setError(err); setSaving(false); return }
-    onSave()
-  }
-  return (
-    <Modal title="Crear acceso para colaborador" onClose={onClose}>
-      <FormField label="Colaborador" hint="El colaborador entrará a su propio panel con este acceso."><Select value={colaboradorId} onChange={setColaboradorId}><option value="">Selecciona un colaborador</option>{colaboradores.filter(c => c.activo).map(c => <option key={c.id} value={c.id}>{c.nombre} — {c.puesto ?? 'Sin puesto'}</option>)}</Select></FormField>
-      <FormField label="Correo electrónico"><Input value={email} onChange={setEmail} placeholder="correo@ejemplo.com" type="email" inputMode="email" autoComplete="off" /></FormField>
-      <FormField label="Contraseña" hint="Mínimo 6 caracteres"><Input value={password} onChange={setPassword} placeholder="••••••••" type="password" autoComplete="new-password" /></FormField>
-      {error && <Alert>{error}</Alert>}
-      <ModalActions>
-        <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={handleSave} disabled={saving} loading={saving}>{saving ? 'Creando…' : 'Crear acceso'}</Btn>
-      </ModalActions>
-    </Modal>
-  )
-}
-
-function DockModal({ punto, hotelId, sucursales, sucursalInicial, nombreNegocio, onClose, onSave }: { punto: PuntoResena | null; hotelId: string; sucursales: Sucursal[]; sucursalInicial: string | null; nombreNegocio: string; onClose: () => void; onSave: () => void }) {
+function DockModal({ punto, hotelId, sucursales, sucursalInicial, nombreNegocio, colaboradores, asignados, equipoDisponible, onIrEquipo, onClose, onSaved }: {
+  punto: PuntoResena | null; hotelId: string; sucursales: Sucursal[]; sucursalInicial: string | null; nombreNegocio: string
+  colaboradores: Colaborador[]; asignados: DockColaborador[]; equipoDisponible: boolean
+  onIrEquipo: () => void; onClose: () => void; onSaved: () => void
+}) {
   const [nombre, setNombre] = useState(punto?.nombre ?? '')
   const [sucursalId, setSucursalId] = useState(punto?.sucursal_id ?? sucursalInicial ?? sucursales[0]?.id ?? '')
   const [link, setLink] = useState(punto?.link_unico ?? '')
   const [linkManual, setLinkManual] = useState(false)
+  const [modo, setModo] = useState<ModoDock>(punto?.modo ?? 'resena')
+  const [pregunta, setPregunta] = useState(punto?.pregunta ?? '')
+  // Ids elegidos, en el orden en que aparecen en la ventana del cliente
+  const [elegidos, setElegidos] = useState<string[]>(() => [...asignados].sort((a, b) => a.orden - b.orden).map(a => a.colaborador_id))
+  const [buscar, setBuscar] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [creado, setCreado] = useState<string | null>(null)
+
+  const activos = colaboradores.filter(c => c.activo)
+  const hayEquipo = equipoDisponible && activos.length > 0
+  const conEquipo = modo !== 'resena'
+  const elegidosActivos = elegidos.filter(id => activos.some(c => c.id === id))
 
   // Mientras el enlace no se edite a mano, se genera con nombre del dock + negocio
   function handleNombre(v: string) {
@@ -904,25 +970,94 @@ function DockModal({ punto, hotelId, sucursales, sucursalInicial, nombreNegocio,
     if (!punto && !linkManual) setLink(linkColaborador(v, nombreNegocio))
   }
 
+  function toggle(id: string) {
+    setError('')
+    setElegidos(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+  function mover(id: string, dir: -1 | 1) {
+    setElegidos(prev => {
+      const i = prev.indexOf(id), j = i + dir
+      if (i < 0 || j < 0 || j >= prev.length) return prev
+      const next = [...prev];[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+  }
+
+  // Elegidos primero (en su orden), luego el resto por nombre
+  const lista = [
+    ...elegidos.map(id => colaboradores.find(c => c.id === id)).filter((c): c is Colaborador => !!c),
+    ...colaboradores.filter(c => !elegidos.includes(c.id)),
+  ]
+  const q = buscar.trim().toLowerCase()
+  const listaVisible = q ? lista.filter(c => `${c.nombre} ${c.puesto ?? ''}`.toLowerCase().includes(q)) : lista
+
+  async function guardarEquipo(puntoId: string): Promise<string | null> {
+    const antes = asignados.map(a => a.colaborador_id)
+    const quitar = antes.filter(id => !elegidos.includes(id))
+    if (quitar.length) {
+      const { error: e } = await supabase.from('dock_colaboradores').delete().eq('punto_id', puntoId).in('colaborador_id', quitar)
+      if (e) return e.message
+    }
+    if (elegidos.length) {
+      const filas = elegidos.map((colaborador_id, orden) => ({ punto_id: puntoId, colaborador_id, orden }))
+      const { error: e } = await supabase.from('dock_colaboradores').upsert(filas, { onConflict: 'punto_id,colaborador_id' })
+      if (e) return e.message
+    }
+    return null
+  }
+
   async function handleSave() {
     if (!nombre.trim() || (!punto && !link.trim())) { setError('Nombre y enlace son requeridos'); return }
     if (!sucursalId) { setError('Elige una sucursal'); return }
+    if (conEquipo && elegidosActivos.length === 0) { setError('Elige al menos una persona activa del equipo, o cambia a “Solo reseña del lugar”.'); return }
     setSaving(true); setError('')
+    const p = pregunta.trim()
+    const datos = { nombre: nombre.trim(), sucursal_id: sucursalId, modo, pregunta: p && p !== PREGUNTA_DOCK ? p : null }
     try {
+      let puntoId = punto?.id ?? null
+      let linkFinal = punto?.link_unico ?? ''
       if (punto) {
         // El enlace de un dock existente no cambia: la placa NFC ya programada depende de él
-        const { error: err } = await supabase.from('puntos_resena').update({ nombre: nombre.trim(), sucursal_id: sucursalId }).eq('id', punto.id)
+        const { error: err } = await supabase.from('puntos_resena').update(datos).eq('id', punto.id)
         if (err) { setError(err.message); return }
       } else {
-        const res = await insertarConLink('puntos_resena', { nombre: nombre.trim(), hotel_id: hotelId, sucursal_id: sucursalId, activo: true }, link.trim(), linkManual, 'Ya existe un dock con ese enlace')
+        const res = await insertarConLink('puntos_resena', { ...datos, hotel_id: hotelId, activo: true }, link.trim(), linkManual, 'Ya existe un dock con ese enlace')
         if (res.error) { setError(res.error); return }
+        puntoId = res.id ?? null
+        linkFinal = res.link ?? link.trim()
       }
-      onSave()
+      // La selección se guarda aunque el modo sea "Solo reseña": al volver a activar el equipo no se pierde
+      const cambiosEquipo = elegidos.join() !== [...asignados].sort((a, b) => a.orden - b.orden).map(a => a.colaborador_id).join()
+      if (puntoId && cambiosEquipo) {
+        const errEquipo = await guardarEquipo(puntoId)
+        if (errEquipo) { onSaved(); setError(`El dock se guardó, pero no el equipo: ${errEquipo}`); return }
+      }
+      onSaved()
+      if (punto) onClose()
+      else setCreado(linkFinal)
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
+  }
+
+  // Paso siguiente tras crear: programar la placa y probar
+  if (creado) {
+    const url = `${RESENA_BASE_URL}/${creado}`
+    return (
+      <Modal title="Dock creado" onClose={onClose}>
+        <Alert tone="success">Último paso: programa la placa NFC con este enlace y acércale tu teléfono para probarla.</Alert>
+        <FormField label="Enlace para la placa">
+          <CopyUrl url={url} />
+        </FormField>
+        <ModalActions>
+          <Btn variant="secondary" icon="external" onClick={() => window.open(url, '_blank', 'noopener')}>Probar como cliente</Btn>
+          <Btn onClick={onClose}>Listo</Btn>
+        </ModalActions>
+      </Modal>
+    )
   }
 
   return (
     <Modal title={punto ? 'Editar dock' : 'Nuevo dock'} onClose={onClose}>
+      <SectionHeader title="1. Dónde está" />
       <FormField label="Sucursal">
         <Select value={sucursalId} onChange={setSucursalId}>
           {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -940,10 +1075,83 @@ function DockModal({ punto, hotelId, sucursales, sucursalInicial, nombreNegocio,
           <Input value={link} onChange={v => { setLink(v); setLinkManual(true) }} placeholder="mesa-1-nombre-negocio" />
         </FormField>
       )}
-      {error && <Alert>{error}</Alert>}
+
+      <SectionHeader title="2. ¿Qué pasa al acercar el teléfono?" />
+      <div className="tk-modes" role="radiogroup" aria-label="Qué muestra el dock">
+        {MODOS_DOCK.map(m => {
+          const bloqueado = m.value !== 'resena' && !hayEquipo && modo !== m.value
+          return (
+            <label key={m.value} className="tk-mode">
+              <input type="radio" name="modo-dock" value={m.value} checked={modo === m.value} disabled={bloqueado} onChange={() => { setModo(m.value); setError('') }} />
+              <span>
+                <span className="tk-mode__title">{m.label}</span>
+                <span className="tk-mode__desc">{m.desc}</span>
+              </span>
+            </label>
+          )
+        })}
+      </div>
+      {!hayEquipo && (
+        <Alert tone="info">
+          {!equipoDisponible
+            ? 'Para mostrar a tu equipo, este negocio necesita el módulo de colaboradores. Pídelo a tak!.'
+            : <>Para mostrar a tu equipo primero agrégalo, con foto, en Mi equipo. <Btn small variant="text" onClick={onIrEquipo}>Ir a Mi equipo</Btn></>}
+        </Alert>
+      )}
+
+      {conEquipo && (
+        <>
+          <SectionHeader title="3. Quién aparece" />
+          <FormField label="Pregunta de la ventana" hint="Déjala vacía para usar la de siempre">
+            <Input value={pregunta} onChange={setPregunta} placeholder={PREGUNTA_DOCK} />
+          </FormField>
+          <div className="tk-pick-bar">
+            <span className="tk-pick-bar__count" aria-live="polite">{elegidosActivos.length} de {activos.length} seleccionados</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <Btn small variant="text" onClick={() => setElegidos(prev => [...prev, ...activos.filter(c => !prev.includes(c.id)).map(c => c.id)])}>Todos</Btn>
+              <Btn small variant="text" onClick={() => setElegidos([])}>Ninguno</Btn>
+            </div>
+          </div>
+          {colaboradores.length > 6 && (
+            <FormField label="Buscar en el equipo">
+              <Input value={buscar} onChange={setBuscar} placeholder="Nombre o puesto" />
+            </FormField>
+          )}
+          <div className="tk-picklist">
+            {listaVisible.length === 0 && <p className="tk-muted" style={{ padding: 16 }}>Nadie coincide con la búsqueda</p>}
+            {listaVisible.map(c => {
+              const on = elegidos.includes(c.id)
+              const idx = elegidos.indexOf(c.id)
+              return (
+                <div key={c.id} className="tk-pick" data-off={!c.activo || undefined}>
+                  <label>
+                    <input type="checkbox" checked={on} disabled={!c.activo && !on} onChange={() => toggle(c.id)} />
+                    <Avatar name={c.nombre} src={c.foto_url} size={36} />
+                    <span className="tk-pick__text">
+                      <span className="tk-pick__name">{c.nombre}</span>
+                      <span className="tk-pick__role">
+                        {[c.puesto, !c.activo ? 'Inactivo: no se muestra' : !c.foto_url ? 'Sin foto' : null].filter(Boolean).join(' · ') || ' '}
+                      </span>
+                    </span>
+                  </label>
+                  {on && !q && (
+                    <span className="tk-pick__order">
+                      {idx > 0 && <IconBtn small icon="chevronUp" label={`Subir a ${c.nombre}`} onClick={() => mover(c.id, -1)} />}
+                      {idx < elegidos.length - 1 && <IconBtn small icon="chevronDown" label={`Bajar a ${c.nombre}`} onClick={() => mover(c.id, 1)} />}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {error && <div style={{ marginTop: 16 }}><Alert>{error}</Alert></div>}
       <ModalActions>
+        {punto && <Btn variant="text" icon="external" onClick={() => window.open(`${RESENA_BASE_URL}/${punto.link_unico}`, '_blank', 'noopener')}>Probar como cliente</Btn>}
         <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={handleSave} disabled={saving} loading={saving}>{saving ? 'Guardando…' : 'Guardar'}</Btn>
+        <Btn onClick={handleSave} disabled={saving} loading={saving}>{saving ? 'Guardando…' : punto ? 'Guardar' : 'Crear dock'}</Btn>
       </ModalActions>
     </Modal>
   )

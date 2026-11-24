@@ -9,6 +9,7 @@ type Perfil = {
   rol: Rol
   hotel_id: string | null
   colaborador_id: string | null
+  activo?: boolean
 }
 
 type AuthContextType = {
@@ -18,6 +19,8 @@ type AuthContextType = {
   loading: boolean
   signIn: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
+  /** Motivo por el que se cerró la sesión (p. ej. acceso desactivado), para mostrarlo en el login */
+  avisoLogin: string | null
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -27,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [loading, setLoading] = useState(true)
+  const [avisoLogin, setAvisoLogin] = useState<string | null>(null)
   const perfilUserId = useRef<string | null>(null)
 
   useEffect(() => {
@@ -62,6 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error || !data) {
         await supabase.auth.signOut()
         setPerfil(null)
+      } else if ((data as Perfil).activo === false) {
+        // Acceso desactivado: Supabase ya le quitó los permisos; aquí solo se cierra la sesión
+        setAvisoLogin('Tu acceso está desactivado. Pídeselo a tu gerente o a tak!')
+        await supabase.auth.signOut()
+        setPerfil(null)
       } else {
         perfilUserId.current = userId
         setPerfil(data as Perfil)
@@ -75,8 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signIn(email: string, password: string): Promise<string | null> {
+    setAvisoLogin(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return error.message
+    if (error) return /banned/i.test(error.message) ? 'desactivado' : error.message
     return null
   }
 
@@ -91,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, perfil, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, perfil, loading, signIn, signOut, avisoLogin }}>
       {children}
     </AuthContext.Provider>
   )

@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { detectLang } from '@/lib/utils'
 import { copiarTexto, googleReviewUrl } from '@/lib/googlePlace'
-import { Alert, Btn, Skeleton } from '@/components/UI'
+import { Alert, Avatar, Btn, Skeleton } from '@/components/UI'
+import { BottomSheet } from '@/components/BottomSheet'
 import { Icon } from '@/components/Icon'
 import logoUrl from '@/assets/tak-logo.webp'
 import { enviarCalificacionesPlatillos, fetchPlatillosPublicos, fotoPlatilloUrl, type PlatilloPublico } from '@/lib/platillos'
 
-// Reseñas de dock (placa NFC en mesa, barra o recepción): sin propina y sin colaborador
+// Dock (placa NFC en mesa, barra o recepción). Según su modo:
+//   resena    -> reseña del lugar (sin colaborador)
+//   agradecer -> ventana plegable "¿A quién quieres agradecer?" con el equipo elegido en el panel
+//   ambos     -> la ventana + "Prefiero calificar el lugar", que deja ver la reseña del lugar
+// Al elegir a alguien se abre su flujo de agradecer (/tip/<liga>?d=<dock>), el mismo de la pulsera.
 
 const translations = {
   es: {
@@ -37,6 +42,14 @@ const translations = {
     dishRemove: (n: string) => `Quitar ${n}`,
     dishMissing: 'Ponle estrellas a cada platillo que elegiste, o quítalo de la lista.',
     dishesThanks: (n: number) => n === 1 ? 'También guardamos la calificación de tu platillo.' : `También guardamos la calificación de tus ${n} platillos.`,
+    thankWho: '¿A quién quieres agradecer?',
+    thankSub: 'Toca a la persona que te atendió',
+    thankSearch: 'Buscar por nombre',
+    thankNone: 'Nadie coincide con la búsqueda',
+    thankPick: 'Elegir a quién agradecer',
+    thankToggle: 'Mostrar u ocultar el equipo',
+    ratePlace: 'Prefiero calificar el lugar',
+    thankLabel: (n: string) => `Agradecer a ${n}`,
   },
   en: {
     reviewTitle: 'How was your experience?',
@@ -65,6 +78,14 @@ const translations = {
     dishRemove: (n: string) => `Remove ${n}`,
     dishMissing: 'Give stars to each dish you picked, or remove it from the list.',
     dishesThanks: (n: number) => n === 1 ? 'We also saved your dish rating.' : `We also saved the ratings for your ${n} dishes.`,
+    thankWho: 'Who would you like to thank?',
+    thankSub: 'Tap the person who served you',
+    thankSearch: 'Search by name',
+    thankNone: 'No one matches your search',
+    thankPick: 'Choose who to thank',
+    thankToggle: 'Show or hide the team',
+    ratePlace: 'I’d rather rate the place',
+    thankLabel: (n: string) => `Thank ${n}`,
   },
 }
 
@@ -75,7 +96,11 @@ type Punto = {
   negocio_nombre: string
   tipo: string | null
   google_place_id: string | null
+  modo: 'resena' | 'agradecer' | 'ambos' | null
+  pregunta: string | null
 }
+
+type Miembro = { nombre: string; puesto: string | null; foto_url: string | null; link_unico: string }
 
 type Props = { linkId: string }
 
@@ -95,20 +120,38 @@ export function ResenaPage({ linkId }: Props) {
   // Orden de selección = orden en que se muestran para calificar
   const [elegidos, setElegidos] = useState<{ id: string; estrellas: number; comentario: string }[]>([])
   const [platillosGuardados, setPlatillosGuardados] = useState(0)
+  const [equipo, setEquipo] = useState<Miembro[]>([])
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
 
   useEffect(() => { load() }, [linkId])
 
   async function load() {
-    const [{ data, error: errorCarga }, menu] = await Promise.all([
+    const [{ data, error: errorCarga }, menu, { data: miembros, error: errorEquipo }] = await Promise.all([
       supabase.rpc('get_punto_publico', { p_link: linkId }).maybeSingle(),
       fetchPlatillosPublicos(linkId),
+      // Solo regresa gente si el dock tiene modo agradecer/ambos; si no, lista vacía
+      supabase.rpc('get_colaboradores_dock', { p_link: linkId }),
     ])
     setPlatillos(menu)
+    if (errorEquipo) console.error('Error cargando equipo del dock:', errorEquipo)
     if (errorCarga) console.error('Error cargando punto de reseñas:', errorCarga)
     if (errorCarga || !data) { setNotFound(true); document.title = 'tak'; return }
     const p = data as Punto
+    const lista = p.modo === 'agradecer' || p.modo === 'ambos' ? ((miembros as Miembro[] | null) ?? []) : []
+    setEquipo(lista)
     setPunto(p)
-    document.title = `Reseña · ${p.negocio_nombre} · tak`
+    document.title = lista.length ? `Agradece · ${p.negocio_nombre} · tak` : `Reseña · ${p.negocio_nombre} · tak`
+    // Se abre sola, un instante después de pintar, para que se vea subir
+    if (lista.length) requestAnimationFrame(() => requestAnimationFrame(() => setSheetOpen(true)))
+  }
+
+  // Sin equipo visible (modo reseña, o todos inactivos) se comporta como reseña del lugar
+  const conEquipo = equipo.length > 0
+  const soloAgradecer = conEquipo && punto?.modo === 'agradecer'
+
+  function elegir(m: Miembro) {
+    window.location.href = `/tip/${encodeURIComponent(m.link_unico)}?d=${encodeURIComponent(linkId)}`
   }
 
   // Google solo si el negocio tiene Place ID, la calificación es de 4-5 y el negocio aún no publicó desde este dispositivo
@@ -311,10 +354,70 @@ export function ResenaPage({ linkId }: Props) {
     </section>
   )
 
+  const q = busqueda.trim().toLowerCase()
+  const visibles = q ? equipo.filter(m => `${m.nombre} ${m.puesto ?? ''}`.toLowerCase().includes(q)) : equipo
+
+  const sheet = conEquipo && (
+    <BottomSheet
+      open={sheetOpen}
+      onOpenChange={setSheetOpen}
+      scrim={!soloAgradecer}
+      toggleLabel={t.thankToggle}
+      head={
+        <>
+          <h2 className="tk-sheet__title">{punto.pregunta || t.thankWho}</h2>
+          <p className="tk-sheet__sub">{t.thankSub}</p>
+        </>
+      }
+    >
+      {equipo.length > 8 && (
+        <label className="tk-field tk-team-search">
+          <span className="tk-sr">{t.thankSearch}</span>
+          <input className="tk-input" type="search" placeholder={t.thankSearch} value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+        </label>
+      )}
+      {visibles.length === 0 ? (
+        <p className="tk-muted" style={{ textAlign: 'center', padding: '16px 0' }}>{t.thankNone}</p>
+      ) : (
+        <div className="tk-team-grid">
+          {visibles.map(m => (
+            <button key={m.link_unico} type="button" className="tk-team" onClick={() => elegir(m)} aria-label={t.thankLabel(m.nombre)}>
+              <Avatar name={m.nombre} src={m.foto_url} size={76} />
+              <span className="tk-team__name">{m.nombre.toLowerCase()}</span>
+              {m.puesto && <span className="tk-team__role">{m.puesto}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {!soloAgradecer && (
+        <div className="tk-sheet__alt">
+          <Btn variant="secondary" icon="star" onClick={() => setSheetOpen(false)}>{t.ratePlace}</Btn>
+        </div>
+      )}
+    </BottomSheet>
+  )
+
+  // Modo "agradecer": la ventana es la página; si se pliega queda un botón para reabrirla
+  if (soloAgradecer) return (
+    <div className="tk-guest">
+      {header}
+      <main className="tk-gcard" style={{ paddingBottom: 120 }}>
+        <div className="tk-success">
+          <span className="tk-success__mark"><Icon name="users" /></span>
+          <h2 className="tk-success__title">{punto.pregunta || t.thankWho}</h2>
+          <Btn onClick={() => setSheetOpen(true)} block>{t.thankPick}</Btn>
+        </div>
+        {footer}
+      </main>
+      {sheet}
+    </div>
+  )
+
   return (
     <div className="tk-guest">
       {header}
-      <main className="tk-gcard">
+      {sheet}
+      <main className="tk-gcard" style={conEquipo ? { paddingBottom: 120 } : undefined}>
         <div>
           <h2 className="tk-gtitle">{t.reviewTitle}</h2>
           {starPicker}

@@ -41,27 +41,30 @@ export function sufijoAleatorio(): string {
 
 // Inserta una fila con enlace único (colaboradores, puntos_resena...). Si el enlace autogenerado
 // choca (23505), reintenta con sufijo hasta 3 veces. Si el enlace lo escribió el usuario a mano,
-// no reintenta: devuelve mensajeDuplicado.
+// no reintenta: devuelve mensajeDuplicado. Devuelve el id y el enlace final de la fila creada.
 export async function insertarConLink(
   tabla: string,
   datos: Record<string, unknown>,
   link: string,
   linkManual: boolean,
   mensajeDuplicado = 'Ya existe un colaborador con ese enlace',
-): Promise<{ error?: string }> {
-  const intentar = (l: string) => supabase.from(tabla).insert({ ...datos, link_unico: l })
+): Promise<{ error?: string; id?: string; link?: string }> {
+  const intentar = async (l: string) => {
+    const { data, error } = await supabase.from(tabla).insert({ ...datos, link_unico: l }).select('id').maybeSingle()
+    return { error, id: (data as { id?: string } | null)?.id, link: l }
+  }
   const esDuplicado = (e: { code?: string } | null) => e?.code === '23505'
 
-  const { error } = await intentar(link)
-  if (!error) return {}
-  if (!esDuplicado(error)) return { error: error.message }
+  const r1 = await intentar(link)
+  if (!r1.error) return { id: r1.id, link: r1.link }
+  if (!esDuplicado(r1.error)) return { error: r1.error.message }
   if (linkManual) return { error: mensajeDuplicado }
 
   const base = truncarSlug(link, 75)
   for (let i = 0; i < 3; i++) {
-    const { error: e2 } = await intentar(`${base}-${sufijoAleatorio()}`)
-    if (!e2) return {}
-    if (!esDuplicado(e2)) return { error: e2.message }
+    const r2 = await intentar(`${base}-${sufijoAleatorio()}`)
+    if (!r2.error) return { id: r2.id, link: r2.link }
+    if (!esDuplicado(r2.error)) return { error: r2.error.message }
   }
   return { error: 'No se pudo generar un enlace único, intenta de nuevo' }
 }

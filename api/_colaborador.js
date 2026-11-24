@@ -30,5 +30,5 @@ export async function getDock(link) {
     body: JSON.stringify({ p_link: link }),
   })
   const [d] = r.ok ? await r.json() : []
-  return d ? { negocio: d.negocio_nombre, punto: d.punto_nombre, restaurante: d.tipo === 'restaurante' } : null
+  return d ? { negocio: d.negocio_nombre, punto: d.punto_nombre, restaurante: d.tipo === 'restaurante', agradecer: d.modo === 'agradecer' || d.modo === 'ambos', pregunta: d.pregunta || null } : null
 }

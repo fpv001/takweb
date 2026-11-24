@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, Users, HandCoins, Star, Split, Trophy, Settings, LogOut, Menu, X, Plus,
-  Download, Copy, Check, Search, ChevronDown, ChevronRight, ArrowLeft, ExternalLink, Trash2, Pencil,
+  Download, Copy, Check, Search, ChevronDown, ChevronUp, ChevronRight, ArrowLeft, ExternalLink, Trash2, Pencil,
   Camera, Phone, Calendar, CircleAlert, TriangleAlert, Info, UserPlus, MessageCircle, CreditCard,
   ChartColumn, TrendingUp, Crown, History, KeyRound, Hotel, Coins, CircleCheck, Bell, Gift, type LucideIcon,
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const ICONS = {
   check: Check,
   search: Search,
   chevronDown: ChevronDown,
+  chevronUp: ChevronUp,
   chevronRight: ChevronRight,
   back: ArrowLeft,
   external: ExternalLink,

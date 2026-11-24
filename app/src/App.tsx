@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Btn, AppSkeleton, LaunchScreen } from '@/components/UI'
 import { Icon } from '@/components/Icon'
+import { CambiarPassword } from '@/components/CambiarPassword'
 import { loadAtlas, loadColaborador, loadHotel, loadLogin, loadResena, loadTip } from '@/routes/loaders'
 
 // Cada ruta es su propio archivo: el huésped no descarga los paneles ni las gráficas
@@ -41,6 +42,8 @@ export function App() {
   // ── Rutas privadas — requieren login ─────────────────────────────────────
   if (loading) return haySesionGuardada() ? <AppSkeleton /> : <LaunchScreen />
   if (!session || !perfil) return <Suspense fallback={<LaunchScreen />}><LoginPage /></Suspense>
+  // Contraseña temporal (acceso recién creado o restablecido): primero elige una nueva
+  if (session.user.user_metadata?.cambiar_password) return <CambiarPassword email={session.user.email ?? ''} onSignOut={signOut} />
 
   return (
     <Suspense fallback={<AppSkeleton variant={perfil.rol === 'colaborador' ? 'perfil' : 'panel'} />}>

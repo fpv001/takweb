@@ -56,6 +56,8 @@ const translations = {
     starLabel: (n: number) => `${n} de 5 estrellas`,
     hello: '¿Cómo te atendió?',
     tag: 'Agradecimientos que cuentan',
+    otherPerson: 'Elegir a otra persona',
+    thankAnother: 'Agradecer a alguien más',
   },
   en: {
     labelAmount: 'How much would you like to leave?',
@@ -103,6 +105,8 @@ const translations = {
     starLabel: (n: number) => `${n} out of 5 stars`,
     hello: 'How was your service?',
     tag: 'Thanks that count',
+    otherPerson: 'Choose someone else',
+    thankAnother: 'Thank someone else',
   },
 }
 
@@ -181,6 +185,9 @@ export function TipPage({ linkId }: Props) {
   const [successType, setSuccessType] = useState<'tip' | 'comment' | 'review'>('tip')
   const [googleOpened, setGoogleOpened] = useState(false)
   const [copiedNotice, setCopiedNotice] = useState(false)
+  // Llegó desde un dock (/r/<liga> -> /tip/<liga>?d=<dock>): las reseñas quedan ligadas a ese dock
+  const [dockLink] = useState(() => new URLSearchParams(window.location.search).get('d'))
+  const [puntoId, setPuntoId] = useState<string | null>(null)
   // Guarda la reseña en cuanto se toca Google; los pasos siguientes esperan esta promesa y la actualizan
   const pendingSaveRef = useRef<Promise<string | null> | null>(null)
 
@@ -217,7 +224,17 @@ export function TipPage({ linkId }: Props) {
 
     if (hotelError) console.error('Error cargando hotel:', hotelError)
     if (hotelData) setHotel(hotelData as Hotel)
+
+    if (dockLink) {
+      const { data: dock } = await supabase.rpc('get_punto_publico', { p_link: dockLink }).maybeSingle()
+      // Solo si el dock es del mismo negocio que el colaborador
+      const d = dock as { punto_id: string; hotel_id: string } | null
+      if (d && d.hotel_id === (data as Colaborador).hotel_id) setPuntoId(d.punto_id)
+    }
   }
+
+  // Campo extra para cada reseña: el dock de origen, si lo hay
+  const origen = puntoId ? { punto_id: puntoId } : {}
 
   const displayAmount = customAmount ? parseFloat(customAmount) : selectedAmount
   const googleDone = googleOpened || !!(hotel && localStorage.getItem(`tak_google_${hotel.id}`))
@@ -291,6 +308,7 @@ export function TipPage({ linkId }: Props) {
             publica: true,
             hotel_id: colaborador.hotel_id,
             colaborador_id: colaborador.id,
+            ...origen,
           })
         if (error) throw error
         setPendingReviewId(id)
@@ -325,7 +343,7 @@ export function TipPage({ linkId }: Props) {
     const id = crypto.randomUUID()
     const { error } = await supabase
       .from('resenas')
-      .insert({ id, ...fields, hotel_id: colaborador.hotel_id, colaborador_id: colaborador.id })
+      .insert({ id, ...fields, hotel_id: colaborador.hotel_id, colaborador_id: colaborador.id, ...origen })
     if (error) throw error
     return id
   }
@@ -373,6 +391,7 @@ export function TipPage({ linkId }: Props) {
         estrellas: starRating,
         comentario: null,
         publica: false,
+        ...origen,
       })
       setStarRating(0)
     } catch (err) {
@@ -414,6 +433,7 @@ export function TipPage({ linkId }: Props) {
         estrellas: null,
         comentario: commentText.trim(),
         publica: false,
+        ...origen,
       })
     } catch (err) {
       console.error('Error saving comment:', err)
@@ -499,6 +519,9 @@ export function TipPage({ linkId }: Props) {
             {successType === 'comment' ? t.thankYou : successType === 'review' ? (lang === 'es' ? '¡Gracias!' : 'Thank you!') : t.thankYou}
           </h1>
           <p className="tk-success__text">{successMessage}</p>
+          {dockLink && (
+            <Btn variant="secondary" onClick={() => { window.location.href = `/r/${encodeURIComponent(dockLink)}` }}>{t.thankAnother}</Btn>
+          )}
         </div>
         {footer}
       </main>
@@ -507,6 +530,8 @@ export function TipPage({ linkId }: Props) {
 
   const backBtn = step !== 'landing' ? (
     <Btn variant="text" icon="back" onClick={goBack}>{t.back}</Btn>
+  ) : dockLink ? (
+    <Btn variant="text" icon="back" onClick={() => { window.location.href = `/r/${encodeURIComponent(dockLink)}` }}>{t.otherPerson}</Btn>
   ) : null
 
   const starPicker = (small?: boolean) => (

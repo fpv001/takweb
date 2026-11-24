@@ -9,7 +9,7 @@ import { loadColaborador, loadHotel } from '@/routes/loaders'
 const LAUNCH_SCALE = 1.25
 
 export function LoginPage() {
-  const { signIn } = useAuth()
+  const { signIn, avisoLogin } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -51,7 +51,7 @@ export function LoginPage() {
     setError('')
     const err = await signIn(email.trim(), password)
     if (err) {
-      setError('Correo o contraseña incorrectos')
+      setError(err === 'desactivado' ? 'Tu acceso está desactivado. Pídeselo a tu gerente o a tak!' : 'Correo o contraseña incorrectos')
       setLoading(false)
     }
     // Si no hay error, AuthContext detecta la sesión y App redirige automáticamente
@@ -116,7 +116,7 @@ export function LoginPage() {
             </span>
           </label>
 
-          {error && <Alert>{error}</Alert>}
+          {error ? <Alert>{error}</Alert> : avisoLogin && <Alert tone="warning">{avisoLogin}</Alert>}
 
           <div className="tk-auth__cta">
             <Btn type="submit" disabled={loading} loading={loading} block>
