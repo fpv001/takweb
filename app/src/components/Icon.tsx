@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building2, Users, HandCoins, Star, Split, Trophy, Settings, LogOut, Menu, X, Plus,
   Download, Copy, Check, Search, ChevronDown, ChevronUp, ChevronRight, ArrowLeft, ExternalLink, Trash2, Pencil,
   Camera, Phone, Calendar, CircleAlert, TriangleAlert, Info, UserPlus, MessageCircle, CreditCard,
-  ChartColumn, TrendingUp, Crown, History, KeyRound, Hotel, Coins, CircleCheck, Bell, Gift, type LucideIcon,
+  ChartColumn, TrendingUp, Crown, History, KeyRound, Hotel, Coins, CircleCheck, Bell, Gift, Play, Heart, type LucideIcon,
 } from 'lucide-react'
 
 // Un solo estilo de iconos: línea redondeada, trazo 2 px (sistema de diseño tak!, §6).
@@ -49,6 +49,8 @@ const ICONS = {
   success: CircleCheck,
   bell: Bell,
   gift: Gift,
+  play: Play,
+  heart: Heart,
 } satisfies Record<string, LucideIcon>
 
 export type IconName = keyof typeof ICONS

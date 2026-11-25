@@ -6,6 +6,9 @@ export const TIP_BASE_URL = `${import.meta.env.VITE_WEB_URL || (typeof window !=
 // Misma base para los docks de reseñas: ${base}/r/${link_unico}
 export const RESENA_BASE_URL = `${import.meta.env.VITE_WEB_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}/r`
 
+// Pulseras tak! de los admins: ${base}/k/${codigo}
+export const TAK_BASE_URL = `${import.meta.env.VITE_WEB_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}/k`
+
 // Minúsculas, sin acentos, solo letras/números/guiones, sin guiones repetidos ni en los extremos
 export function slugify(texto: string): string {
   return texto

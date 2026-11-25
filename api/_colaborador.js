@@ -32,3 +32,15 @@ export async function getDock(link) {
   const [d] = r.ok ? await r.json() : []
   return d ? { negocio: d.negocio_nombre, punto: d.punto_nombre, restaurante: d.tipo === 'restaurante', agradecer: d.modo === 'agradecer' || d.modo === 'ambos', pregunta: d.pregunta || null } : null
 }
+
+// Pulsera tak! de un admin (/k/:codigo)
+export async function getTakTarjeta(codigo) {
+  if (!codigo || !/^[a-z0-9]{6,16}$/.test(codigo) || !url || !key) return null
+  const r = await fetch(`${url}/rest/v1/rpc/get_tak_tarjeta_publica`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_codigo: codigo }),
+  })
+  const [t] = r.ok ? await r.json() : []
+  return t ? { nombre: titleCase(t.nombre) } : null
+}

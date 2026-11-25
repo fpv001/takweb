@@ -86,7 +86,15 @@
       "destination": "/api/tip?id=:id&k=r"
     },
     {
+      "source": "/k/:id",
+      "destination": "/api/tip?id=:id&k=k"
+    },
+    {
       "source": "/r/:path*",
+      "destination": "/admin"
+    },
+    {
+      "source": "/k/:path*",
       "destination": "/admin"
     }
   ],

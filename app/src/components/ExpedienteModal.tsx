@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { subirFotoColaborador } from '@/lib/fotos'
 import { supabase } from '@/integrations/supabase/client'
 import { getInitials } from '@/lib/utils'
 import { Modal, ModalActions, FormField, Input, Select, Btn, Avatar, ActiveBadge, Alert } from '@/components/UI'
@@ -51,24 +52,17 @@ export function ExpedienteModal({ colaborador, onClose, onSave, readOnly = false
   async function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) { setError('Solo se permiten imágenes'); return }
-    if (file.size > 2 * 1024 * 1024) { setError('La imagen debe ser menor a 2MB'); return }
-
+    // Se recorta en cuadro y se comprime antes de subir: cualquier foto del teléfono entra
     setUploadingFoto(true)
     setError('')
-
-    const ext = file.name.split('.').pop()
-    const path = `${colaborador.id}.${ext}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('colaboradores')
-      .upload(path, file, { upsert: true })
-
-    if (uploadError) { setError('Error subiendo foto: ' + uploadError.message); setUploadingFoto(false); return }
-
-    const { data } = supabase.storage.from('colaboradores').getPublicUrl(path)
-    setFotoUrl(data.publicUrl + '?t=' + Date.now()) // cache bust
-    setUploadingFoto(false)
+    try {
+      setFotoUrl(await subirFotoColaborador(colaborador.id, file))
+    } catch (err: any) {
+      setError('Error subiendo foto: ' + err.message)
+    } finally {
+      setUploadingFoto(false)
+      e.target.value = ''
+    }
   }
 
   async function handleSave() {

@@ -1,11 +1,18 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { getColaborador, getDock } from './_colaborador.js'
+import { getColaborador, getDock, getTakTarjeta } from './_colaborador.js'
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
-// Vista previa de las ligas que se comparten: /tip/:id (pulsera de colaborador) y /r/:id (dock de reseñas)
+// Vista previa de las ligas que se comparten: /tip/:id (pulsera de colaborador), /r/:id (dock de reseñas)
+// y /k/:id (pulsera tak! de un admin)
 async function preview(kind, id) {
+  if (kind === 'k') {
+    const t = await getTakTarjeta(id).catch(() => null)
+    if (!t) return null
+    // Imagen fija de tak! (api/og.js solo genera tarjetas de colaborador y dock)
+    return { title: `Conoce tak! · te lo presenta ${t.nombre}`, desc: 'Reseñas y propinas digitales con tak!', path: `/k/${id}`, ogFija: true }
+  }
   if (kind === 'r') {
     const d = await getDock(id).catch(() => null)
     if (!d) return null
@@ -31,7 +38,7 @@ async function preview(kind, id) {
 
 export default async function handler(req, res) {
   const id = String(req.query.id || '')
-  const kind = req.query.k === 'r' ? 'r' : 'tip'
+  const kind = req.query.k === 'r' ? 'r' : req.query.k === 'k' ? 'k' : 'tip'
   const origin = `https://${req.headers['x-forwarded-host'] || req.headers.host}`
   let html
   try { html = await readFile(join(process.cwd(), 'admin/index.html'), 'utf8') }
@@ -41,15 +48,15 @@ export default async function handler(req, res) {
   const p = await preview(kind, id) ?? {
     title: 'tak! · Agradecimientos que cuentan',
     desc: 'Reseñas y propinas digitales con tak!',
-    path: kind === 'r' ? `/r/${id}` : `/tip/${id}`,
+    path: kind === 'tip' ? `/tip/${id}` : `/${kind}/${id}`,
     fallback: true,
   }
-  const img = p.fallback ? `${origin}/public/assets/og-image.jpg` : `${origin}/api/og?${kind === 'r' ? 'k=r&' : ''}id=${encodeURIComponent(id)}`
+  const img = p.fallback || p.ogFija ? `${origin}/public/assets/og-image.jpg` : `${origin}/api/og?${kind === 'r' ? 'k=r&' : ''}id=${encodeURIComponent(id)}`
   const meta = [
     ['property', 'og:type', 'website'], ['property', 'og:site_name', 'tak!'],
     ['property', 'og:title', p.title], ['property', 'og:description', p.desc],
     ['property', 'og:url', `${origin}${p.path}`],
-    ['property', 'og:image', img], ...(p.fallback ? [] : [['property', 'og:image:width', '1200'], ['property', 'og:image:height', '630']]),
+    ['property', 'og:image', img], ...(p.fallback || p.ogFija ? [] : [['property', 'og:image:width', '1200'], ['property', 'og:image:height', '630']]),
     ['name', 'twitter:card', 'summary_large_image'], ['name', 'twitter:title', p.title],
     ['name', 'twitter:description', p.desc], ['name', 'twitter:image', img], ['name', 'description', p.desc],
   ].map(([a, k, v]) => `<meta ${a}="${k}" content="${esc(v)}" />`).join('\n    ')

@@ -4,12 +4,15 @@ import { supabase } from '@/integrations/supabase/client'
 import { getInitials, formatMXN } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { AccesosPanel } from '@/components/AccesosPanel'
+import { TakTarjetasPanel } from '@/components/TakTarjetasPanel'
 import { ExpedienteModal, ColaboradorAvatar, type ColaboradorCompleto } from '@/components/ExpedienteModal'
 import { HotelDashboard } from '@/routes/HotelDashboard'
 import { exportCSV, formatDateFull } from '@/lib/export'
 import { googleReviewUrl, limpiarPlaceId } from '@/lib/googlePlace'
 import { etiquetasNegocio, TIPOS_NEGOCIO, type TipoNegocio, type Modulos, modulosDe, modulosPorDefecto, nombrePlan } from '@/lib/negocio'
 import { TIP_BASE_URL, insertarColaborador, linkColaborador } from '@/lib/slug'
+import { subirFotoColaborador } from '@/lib/fotos'
+import { FotoPicker } from '@/components/FotoPicker'
 import {
   AppLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, Badge, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
@@ -25,7 +28,7 @@ type Dock = { id: string; hotel_id: string }
 type Colaborador = { id: string; nombre: string; puesto: string | null; hotel_id: string; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null }
 type Propina = { id: string; monto_total: number; estado: string; hotel_id: string; colaborador_id: string; created_at: string }
 type Lead = { id: string; nombre: string; negocio: string; tipo: string; correo: string; mensaje: string; estado: string; notas: string | null; created_at: string }
-type Tab = 'resumen' | 'interesados' | 'hoteles' | 'colaboradores' | 'propinas' | 'accesos'
+type Tab = 'resumen' | 'interesados' | 'hoteles' | 'colaboradores' | 'propinas' | 'accesos' | 'tak'
 
 const ESTADOS_LEAD: Record<string, { label: string; tone: Tone }> = {
   nuevo: { label: 'Nuevo', tone: 'brand' },
@@ -54,6 +57,7 @@ const NAV = [
   { id: 'colaboradores', label: 'Colaboradores', icon: 'users' },
   { id: 'propinas', label: 'Propinas', icon: 'tip' },
   { id: 'accesos', label: 'Accesos', icon: 'key' },
+  { id: 'tak', label: 'Mi tak!', icon: 'heart' },
 ]
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -366,6 +370,8 @@ export function AtlasAdmin() {
               <AccesosPanel miRol="atlas_admin" hotels={hotels} colaboradores={colaboradores} />
             )}
 
+            {tab === 'tak' && <TakTarjetasPanel onAbrirNegocio={setHotelDetalle} />}
+
             {tab === 'propinas' && (
               <>
                 <PageHeader title="Propinas" subtitle="Historial completo de transacciones" action={<Btn variant="secondary" icon="download" onClick={exportarPropinas}>Exportar CSV</Btn>} />
@@ -582,6 +588,10 @@ function ColaboradorModal({ colaborador, hotels, onClose, onSave }: { colaborado
   const [link, setLink] = useState(colaborador?.link_unico ?? '')
   const [linkManual, setLinkManual] = useState(false)
   const [activo, setActivo] = useState(colaborador?.activo ?? true)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoQuitada, setFotoQuitada] = useState(false)
+  // Si el alta salió bien pero la foto falló, el siguiente "Guardar" ya no vuelve a crear
+  const [creadoId, setCreadoId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -599,16 +609,29 @@ function ColaboradorModal({ colaborador, hotels, onClose, onSave }: { colaborado
   }
 
   async function handleSave() {
-    if (!nombre.trim() || !hotelId || (!colaborador && !link.trim())) { setError('Completa todos los campos requeridos'); return }
+    if (!nombre.trim() || !hotelId || (!colaborador && !creadoId && !link.trim())) { setError('Completa todos los campos requeridos'); return }
     setSaving(true); setError('')
     try {
-      if (colaborador) {
+      let id = colaborador?.id ?? creadoId
+      if (id) {
         // El enlace de un colaborador existente no cambia: la pulsera NFC ya programada depende de él
-        const { error: err } = await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo }).eq('id', colaborador.id)
+        const { error: err } = await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo, ...(fotoQuitada && !fotoFile ? { foto_url: null } : {}) }).eq('id', id)
         if (err) { setError(err.message); return }
       } else {
         const res = await insertarColaborador({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo: true }, link.trim(), linkManual)
         if (res.error) { setError(res.error); return }
+        id = res.id ?? null
+        if (id) setCreadoId(id)
+      }
+      if (fotoFile && id) {
+        try {
+          const url = await subirFotoColaborador(id, fotoFile)
+          const { error: errFoto } = await supabase.from('colaboradores').update({ foto_url: url }).eq('id', id)
+          if (errFoto) throw errFoto
+        } catch (e: any) {
+          setError(`Los datos se guardaron, pero la foto no se subió: ${e.message}. Intenta de nuevo.`)
+          return
+        }
       }
       onSave()
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
@@ -616,6 +639,8 @@ function ColaboradorModal({ colaborador, hotels, onClose, onSave }: { colaborado
 
   return (
     <Modal title={colaborador ? 'Editar colaborador' : 'Nuevo colaborador'} onClose={onClose}>
+      <FotoPicker nombre={nombre} value={colaborador?.foto_url ?? null} file={fotoFile} quitada={fotoQuitada}
+        onChange={(f, quitar) => { setFotoFile(f); setFotoQuitada(!!quitar) }} />
       <FormField label="Nombre completo">
         <Input value={nombre} onChange={handleNombre} placeholder="Jorge Martínez" />
       </FormField>
