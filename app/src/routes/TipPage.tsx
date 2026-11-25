@@ -5,6 +5,8 @@ import { googleReviewUrl } from '@/lib/googlePlace'
 import { Alert, Avatar, Btn, Skeleton } from '@/components/UI'
 import { Icon, type IconName } from '@/components/Icon'
 import logoUrl from '@/assets/tak-logo.webp'
+import { enviarCalificacionesPlatillos, fetchPlatillosPublicos, type PlatilloPublico } from '@/lib/platillos'
+import { PlatillosCalificar, faltanEstrellasPlatillos, mensajeFaltanEstrellas, type PlatilloElegido } from '@/components/PlatillosCalificar'
 
 const SUGGESTED_AMOUNTS = [50, 100, 200]
 type Step = 'landing' | 'review' | 'tip' | 'comment' | 'success'
@@ -58,6 +60,10 @@ const translations = {
     tag: 'Agradecimientos que cuentan',
     otherPerson: 'Elegir a otra persona',
     thankAnother: 'Agradecer a alguien más',
+    ratePlace: 'Calificar el lugar',
+    dishesTitle: (n: string) => `¿Qué te trajo ${n}?`,
+    dishesSub: 'Toca los platillos que probaste y califícalos',
+    dishesThanks: (n: number) => n === 1 ? 'También guardamos la calificación de tu platillo.' : `También guardamos la calificación de tus ${n} platillos.`,
   },
   en: {
     labelAmount: 'How much would you like to leave?',
@@ -107,6 +113,10 @@ const translations = {
     tag: 'Thanks that count',
     otherPerson: 'Choose someone else',
     thankAnother: 'Thank someone else',
+    ratePlace: 'Rate the place',
+    dishesTitle: (n: string) => `What did ${n} bring you?`,
+    dishesSub: 'Tap the dishes you tried and rate them',
+    dishesThanks: (n: number) => n === 1 ? 'We also saved your dish rating.' : `We also saved the ratings for your ${n} dishes.`,
   },
 }
 
@@ -188,6 +198,13 @@ export function TipPage({ linkId }: Props) {
   // Llegó desde un dock (/r/<liga> -> /tip/<liga>?d=<dock>): las reseñas quedan ligadas a ese dock
   const [dockLink] = useState(() => new URLSearchParams(window.location.search).get('d'))
   const [puntoId, setPuntoId] = useState<string | null>(null)
+  const [dockConLugar, setDockConLugar] = useState(false)
+  // Menú del dock: lo que le trajo esta persona se califica dentro de la misma reseña
+  const [platillos, setPlatillos] = useState<PlatilloPublico[]>([])
+  const [elegidos, setElegidos] = useState<PlatilloElegido[]>([])
+  const [errorPlatillos, setErrorPlatillos] = useState('')
+  const [platillosGuardados, setPlatillosGuardados] = useState(0)
+  const platillosEnviadosRef = useRef(false)
   // Guarda la reseña en cuanto se toca Google; los pasos siguientes esperan esta promesa y la actualizan
   const pendingSaveRef = useRef<Promise<string | null> | null>(null)
 
@@ -228,8 +245,12 @@ export function TipPage({ linkId }: Props) {
     if (dockLink) {
       const { data: dock } = await supabase.rpc('get_punto_publico', { p_link: dockLink }).maybeSingle()
       // Solo si el dock es del mismo negocio que el colaborador
-      const d = dock as { punto_id: string; hotel_id: string } | null
-      if (d && d.hotel_id === (data as Colaborador).hotel_id) setPuntoId(d.punto_id)
+      const d = dock as { punto_id: string; hotel_id: string; modo: string | null } | null
+      if (d && d.hotel_id === (data as Colaborador).hotel_id) {
+        setPuntoId(d.punto_id)
+        setDockConLugar(d.modo !== 'agradecer')
+        setPlatillos(await fetchPlatillosPublicos(dockLink))
+      }
     }
   }
 
@@ -280,9 +301,25 @@ export function TipPage({ linkId }: Props) {
     }
   }
 
+  // Las calificaciones de platillos se ligan a la reseña de esta persona en el dock; una sola vez
+  async function guardarPlatillos(resenaId: string | null) {
+    if (!resenaId || !dockLink || !puntoId || !elegidos.length || platillosEnviadosRef.current) return
+    platillosEnviadosRef.current = true
+    const error = await enviarCalificacionesPlatillos(dockLink, resenaId, elegidos.map(e => ({ platillo_id: e.id, estrellas: e.estrellas, comentario: e.comentario })))
+    if (error) { console.error('Error guardando calificaciones de platillos:', error); platillosEnviadosRef.current = false }
+    else setPlatillosGuardados(elegidos.length)
+  }
+
+  function platillosIncompletos() {
+    if (!faltanEstrellasPlatillos(elegidos)) return false
+    setErrorPlatillos(mensajeFaltanEstrellas())
+    return true
+  }
+
   // Abre Google en el mismo gesto del usuario y guarda la reseña sin bloquear
   function handleOpenGoogleReviews() {
     if (!hotel?.google_place_id || !colaborador || starRating < 4 || googleDone) return
+    if (platillosIncompletos()) return
     const texto = reviewText.trim()
     if (texto) copyToClipboard(texto)
     window.open(googleReviewUrl(hotel.google_place_id), '_blank', 'noopener')
@@ -313,6 +350,7 @@ export function TipPage({ linkId }: Props) {
         if (error) throw error
         setPendingReviewId(id)
         guardarFlow(linkId, { reviewId: id, estrellas, texto })
+        await guardarPlatillos(id)
         return id
       } catch (err) {
         console.error('Error saving review:', err)
@@ -350,9 +388,10 @@ export function TipPage({ linkId }: Props) {
 
   async function handleReviewWithoutTip() {
     if (!colaborador || starRating === 0) return
+    if (platillosIncompletos()) return
     setLoading(true)
     try {
-      await persistReview()
+      await guardarPlatillos(await persistReview())
     } catch (err) {
       console.error('Error saving review:', err)
     } finally {
@@ -367,9 +406,11 @@ export function TipPage({ linkId }: Props) {
 
   async function handleReviewWithTip() {
     if (!colaborador || starRating === 0) return
+    if (platillosIncompletos()) return
     setLoading(true)
     try {
       const reviewId = await persistReview()
+      await guardarPlatillos(reviewId)
       setPendingReviewId(reviewId)
       setCameFromReview(true)
     } catch (err) {
@@ -519,8 +560,12 @@ export function TipPage({ linkId }: Props) {
             {successType === 'comment' ? t.thankYou : successType === 'review' ? (lang === 'es' ? '¡Gracias!' : 'Thank you!') : t.thankYou}
           </h1>
           <p className="tk-success__text">{successMessage}</p>
-          {dockLink && (
-            <Btn variant="secondary" onClick={() => { window.location.href = `/r/${encodeURIComponent(dockLink)}` }}>{t.thankAnother}</Btn>
+          {platillosGuardados > 0 && <p className="tk-success__text">{t.dishesThanks(platillosGuardados)}</p>}
+          {puntoId && dockLink && (
+            <div className="tk-gactions" style={{ width: '100%' }}>
+              <Btn variant="secondary" onClick={() => { window.location.href = `/r/${encodeURIComponent(dockLink)}` }} block>{t.thankAnother}</Btn>
+              {dockConLugar && <Btn variant="text" icon="star" onClick={() => { window.location.href = `/r/${encodeURIComponent(dockLink)}?lugar` }} block>{t.ratePlace}</Btn>}
+            </div>
           )}
         </div>
         {footer}
@@ -586,6 +631,11 @@ export function TipPage({ linkId }: Props) {
               <span className="tk-sr">{t.labelReview}</span>
               <textarea className="tk-textarea" placeholder={t.reviewPlaceholder} value={reviewText} onChange={e => setReviewText(e.target.value)} rows={4} />
             </label>
+            <PlatillosCalificar platillos={platillos} elegidos={elegidos} marcarFaltantes={!!errorPlatillos}
+              titulo={t.dishesTitle(colaborador.nombre.split(' ')[0].toLowerCase().replace(/^\p{L}/u, c => c.toUpperCase()))}
+              subtitulo={t.dishesSub}
+              onChange={v => { setErrorPlatillos(''); setElegidos(v) }} />
+            {errorPlatillos && <Alert>{errorPlatillos}</Alert>}
             {copiedNotice && <Alert tone="success">{t.googleCopied}</Alert>}
 
             <div className="tk-gactions">

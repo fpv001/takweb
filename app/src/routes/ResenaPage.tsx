@@ -6,7 +6,9 @@ import { Alert, Avatar, Btn, Skeleton } from '@/components/UI'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Icon } from '@/components/Icon'
 import logoUrl from '@/assets/tak-logo.webp'
-import { enviarCalificacionesPlatillos, fetchPlatillosPublicos, fotoPlatilloUrl, type PlatilloPublico } from '@/lib/platillos'
+import { enviarCalificacionesPlatillos, fetchPlatillosPublicos, type PlatilloPublico } from '@/lib/platillos'
+import { AgradecerGrupo } from '@/components/AgradecerGrupo'
+import { PlatillosCalificar, faltanEstrellasPlatillos, type PlatilloElegido } from '@/components/PlatillosCalificar'
 
 // Dock (placa NFC en mesa, barra o recepción). Según su modo:
 //   resena    -> reseña del lugar (sin colaborador)
@@ -33,13 +35,6 @@ const translations = {
     footer: 'Reseñas digitales por',
     hello: 'Cuéntanos de tu visita',
     tag: 'Agradecimientos que cuentan',
-    dishesTitle: '¿Qué comiste?',
-    dishesSub: 'Toca los platillos que probaste para calificarlos',
-    dishesRate: 'Califica tus platillos',
-    dishComment: 'Comentario sobre este platillo (opcional)',
-    dishCommentPh: 'Comentario (opcional)',
-    dishSelected: (n: string) => `${n}, seleccionado`,
-    dishRemove: (n: string) => `Quitar ${n}`,
     dishMissing: 'Ponle estrellas a cada platillo que elegiste, o quítalo de la lista.',
     dishesThanks: (n: number) => n === 1 ? 'También guardamos la calificación de tu platillo.' : `También guardamos la calificación de tus ${n} platillos.`,
     thankWho: '¿A quién quieres agradecer?',
@@ -50,6 +45,9 @@ const translations = {
     thankToggle: 'Mostrar u ocultar el equipo',
     ratePlace: 'Prefiero calificar el lugar',
     thankLabel: (n: string) => `Agradecer a ${n}`,
+    thankSub2: 'Toca a quien te atendió; puedes elegir a varias personas',
+    goOne: (n: string) => `Agradecer a ${n}`,
+    goMany: (n: number) => `Agradecer a ${n} personas`,
   },
   en: {
     reviewTitle: 'How was your experience?',
@@ -69,13 +67,6 @@ const translations = {
     footer: 'Digital reviews by',
     hello: 'Tell us about your visit',
     tag: 'Thanks that count',
-    dishesTitle: 'What did you eat?',
-    dishesSub: 'Tap the dishes you tried to rate them',
-    dishesRate: 'Rate your dishes',
-    dishComment: 'Comment on this dish (optional)',
-    dishCommentPh: 'Comment (optional)',
-    dishSelected: (n: string) => `${n}, selected`,
-    dishRemove: (n: string) => `Remove ${n}`,
     dishMissing: 'Give stars to each dish you picked, or remove it from the list.',
     dishesThanks: (n: number) => n === 1 ? 'We also saved your dish rating.' : `We also saved the ratings for your ${n} dishes.`,
     thankWho: 'Who would you like to thank?',
@@ -86,6 +77,9 @@ const translations = {
     thankToggle: 'Show or hide the team',
     ratePlace: 'I’d rather rate the place',
     thankLabel: (n: string) => `Thank ${n}`,
+    thankSub2: 'Tap who served you; you can pick several people',
+    goOne: (n: string) => `Thank ${n}`,
+    goMany: (n: number) => `Thank ${n} people`,
   },
 }
 
@@ -118,11 +112,20 @@ export function ResenaPage({ linkId }: Props) {
   const [copied, setCopied] = useState(false)
   const [platillos, setPlatillos] = useState<PlatilloPublico[]>([])
   // Orden de selección = orden en que se muestran para calificar
-  const [elegidos, setElegidos] = useState<{ id: string; estrellas: number; comentario: string }[]>([])
+  const [elegidos, setElegidos] = useState<PlatilloElegido[]>([])
   const [platillosGuardados, setPlatillosGuardados] = useState(0)
   const [equipo, setEquipo] = useState<Miembro[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [busqueda, setBusqueda] = useState('')
+  // Se puede elegir a varias personas; con una sola se va a su flujo de siempre (/tip)
+  const [seleccion, setSeleccion] = useState<string[]>([])
+  const [grupo, setGrupo] = useState<Miembro[] | null>(null)
+
+  useEffect(() => {
+    const onPop = () => { setGrupo(null); setSheetOpen(true) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   useEffect(() => { load() }, [linkId])
 
@@ -143,31 +146,35 @@ export function ResenaPage({ linkId }: Props) {
     setPunto(p)
     document.title = lista.length ? `Agradece · ${p.negocio_nombre} · tak` : `Reseña · ${p.negocio_nombre} · tak`
     // Se abre sola, un instante después de pintar, para que se vea subir
-    if (lista.length) requestAnimationFrame(() => requestAnimationFrame(() => setSheetOpen(true)))
+    // ?lugar: viene de terminar de agradecer a alguien y quiere calificar el lugar; la ventana queda plegada
+    const aLugar = new URLSearchParams(window.location.search).has('lugar') && p.modo === 'ambos'
+    if (lista.length && !aLugar) requestAnimationFrame(() => requestAnimationFrame(() => setSheetOpen(true)))
   }
 
   // Sin equipo visible (modo reseña, o todos inactivos) se comporta como reseña del lugar
   const conEquipo = equipo.length > 0
   const soloAgradecer = conEquipo && punto?.modo === 'agradecer'
 
-  function elegir(m: Miembro) {
-    window.location.href = `/tip/${encodeURIComponent(m.link_unico)}?d=${encodeURIComponent(linkId)}`
+  function toggleMiembro(link: string) {
+    setSeleccion(prev => prev.includes(link) ? prev.filter(l => l !== link) : [...prev, link])
+  }
+
+  function continuar() {
+    const elegidosEquipo = equipo.filter(m => seleccion.includes(m.link_unico))
+    if (elegidosEquipo.length === 1) {
+      window.location.href = `/tip/${encodeURIComponent(elegidosEquipo[0].link_unico)}?d=${encodeURIComponent(linkId)}`
+    } else if (elegidosEquipo.length > 1) {
+      history.pushState({ grupo: true }, '')
+      setSheetOpen(false)
+      setGrupo(elegidosEquipo)
+      window.scrollTo(0, 0)
+    }
   }
 
   // Google solo si el negocio tiene Place ID, la calificación es de 4-5 y el negocio aún no publicó desde este dispositivo
   const googleDisponible = !!punto?.google_place_id && starRating >= 4 && !localStorage.getItem(`tak_google_${punto?.hotel_id}`)
 
-  const faltanEstrellas = elegidos.some(e => e.estrellas === 0)
-
-  function togglePlatillo(id: string) {
-    setError('')
-    setElegidos(prev => prev.some(e => e.id === id) ? prev.filter(e => e.id !== id) : [...prev, { id, estrellas: 0, comentario: '' }])
-  }
-
-  function editarElegido(id: string, cambios: Partial<{ estrellas: number; comentario: string }>) {
-    setError('')
-    setElegidos(prev => prev.map(e => e.id === id ? { ...e, ...cambios } : e))
-  }
+  const faltanEstrellas = faltanEstrellasPlatillos(elegidos)
 
   async function guardar(publica: boolean): Promise<boolean> {
     if (!punto) return false
@@ -291,69 +298,6 @@ export function ResenaPage({ linkId }: Props) {
     </div>
   )
 
-  const menu = platillos.length > 0 && (
-    <section className="tk-dishes" aria-labelledby="tk-dishes-title">
-      <h2 id="tk-dishes-title" className="tk-gtitle tk-dishes__title">{t.dishesTitle}</h2>
-      <p className="tk-dishes__sub">{t.dishesSub}</p>
-      <div className="tk-dish-grid">
-        {platillos.map(p => {
-          const on = elegidos.some(e => e.id === p.id)
-          const foto = fotoPlatilloUrl(p.foto_path)
-          return (
-            <button key={p.id} type="button" className="tk-dish" aria-pressed={on} onClick={() => togglePlatillo(p.id)}
-              aria-label={on ? t.dishSelected(p.nombre) : p.nombre}>
-              <span className="tk-dish__photo">
-                {foto ? <img src={foto} alt="" loading="lazy" decoding="async" /> : <span className="tk-dish__initial" aria-hidden="true">{p.nombre.charAt(0)}</span>}
-                <span className="tk-dish__check" aria-hidden="true"><Icon name="check" /></span>
-              </span>
-              <span className="tk-dish__name">{p.nombre}</span>
-              {p.descripcion && <span className="tk-dish__desc">{p.descripcion}</span>}
-            </button>
-          )
-        })}
-      </div>
-
-      {elegidos.length > 0 && (
-        <div className="tk-dish-rates">
-          <h3 className="tk-glabel">{t.dishesRate}</h3>
-          {elegidos.map(e => {
-            const p = platillos.find(x => x.id === e.id)
-            if (!p) return null
-            const foto = fotoPlatilloUrl(p.foto_path)
-            return (
-              <div key={e.id} className="tk-dish-rate" data-missing={error && e.estrellas === 0 ? '' : undefined}>
-                <div className="tk-dish-rate__head">
-                  <span className="tk-dish-rate__thumb">
-                    {foto ? <img src={foto} alt="" /> : <span aria-hidden="true">{p.nombre.charAt(0)}</span>}
-                  </span>
-                  <p className="tk-dish-rate__name">{p.nombre}</p>
-                  <button type="button" className="tk-dish-rate__remove" onClick={() => togglePlatillo(e.id)} aria-label={t.dishRemove(p.nombre)}>
-                    <Icon name="close" />
-                  </button>
-                </div>
-                <div className="tk-rate tk-rate--sm" role="group" aria-label={p.nombre}>
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <button key={s} type="button" onClick={() => editarElegido(e.id, { estrellas: s })} className={s <= e.estrellas ? 'is-on' : undefined}
-                      aria-label={t.starLabel(s)} aria-pressed={s === e.estrellas}>
-                      <Icon name="star" />
-                    </button>
-                  ))}
-                </div>
-                {e.estrellas > 0 && (
-                  <label className="tk-field">
-                    <span className="tk-sr">{t.dishComment}</span>
-                    <input className="tk-input" placeholder={t.dishCommentPh} value={e.comentario} maxLength={500}
-                      onChange={ev => editarElegido(e.id, { comentario: ev.target.value })} />
-                  </label>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </section>
-  )
-
   const q = busqueda.trim().toLowerCase()
   const visibles = q ? equipo.filter(m => `${m.nombre} ${m.puesto ?? ''}`.toLowerCase().includes(q)) : equipo
 
@@ -366,7 +310,7 @@ export function ResenaPage({ linkId }: Props) {
       head={
         <>
           <h2 className="tk-sheet__title">{punto.pregunta || t.thankWho}</h2>
-          <p className="tk-sheet__sub">{t.thankSub}</p>
+          <p className="tk-sheet__sub">{equipo.length > 1 ? t.thankSub2 : t.thankSub}</p>
         </>
       }
     >
@@ -381,12 +325,25 @@ export function ResenaPage({ linkId }: Props) {
       ) : (
         <div className="tk-team-grid">
           {visibles.map(m => (
-            <button key={m.link_unico} type="button" className="tk-team" onClick={() => elegir(m)} aria-label={t.thankLabel(m.nombre)}>
-              <Avatar name={m.nombre} src={m.foto_url} size={76} />
+            <button key={m.link_unico} type="button" className="tk-team" onClick={() => toggleMiembro(m.link_unico)}
+              aria-pressed={seleccion.includes(m.link_unico)} aria-label={t.thankLabel(m.nombre)}>
+              <span className="tk-team__pic">
+                <Avatar name={m.nombre} src={m.foto_url} size={76} />
+                <span className="tk-team__check" aria-hidden="true"><Icon name="check" /></span>
+              </span>
               <span className="tk-team__name">{m.nombre.toLowerCase()}</span>
               {m.puesto && <span className="tk-team__role">{m.puesto}</span>}
             </button>
           ))}
+        </div>
+      )}
+      {seleccion.length > 0 && (
+        <div className="tk-sheet__go">
+          <Btn icon="tip" onClick={continuar} block>
+            {seleccion.length === 1
+              ? t.goOne(equipo.find(m => m.link_unico === seleccion[0])?.nombre.split(' ')[0].toLowerCase().replace(/^\p{L}/u, c => c.toUpperCase()) ?? '')
+              : t.goMany(seleccion.length)}
+          </Btn>
         </div>
       )}
       {!soloAgradecer && (
@@ -395,6 +352,22 @@ export function ResenaPage({ linkId }: Props) {
         </div>
       )}
     </BottomSheet>
+  )
+
+  if (grupo) return (
+    <div className="tk-guest tk-guest--compact">
+      <div className="tk-gbar"><img src={logoUrl} alt="tak!" /><span className="tk-gbar__tag">{t.tag}</span></div>
+      <AgradecerGrupo
+        dockLink={linkId}
+        puntoId={punto.punto_id}
+        miembros={grupo}
+        platillos={platillos}
+        conLugar={!soloAgradecer}
+        onBack={() => history.back()}
+        onRatePlace={() => { setGrupo(null); setSeleccion([]); setSheetOpen(false); window.scrollTo(0, 0) }}
+      />
+      {footer}
+    </div>
   )
 
   // Modo "agradecer": la ventana es la página; si se pliega queda un botón para reabrirla
@@ -432,7 +405,8 @@ export function ResenaPage({ linkId }: Props) {
             <span className="tk-sr">{t.reviewTitle}</span>
             <textarea className="tk-textarea" placeholder={t.placeholder} value={texto} onChange={e => setTexto(e.target.value)} rows={4} />
           </label>
-          {menu}
+          <PlatillosCalificar platillos={platillos} elegidos={elegidos} marcarFaltantes={!!error}
+            onChange={v => { setError(''); setElegidos(v) }} />
           {error && <Alert>{error}</Alert>}
 
           <div className="tk-gactions">

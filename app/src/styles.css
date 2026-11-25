@@ -635,7 +635,9 @@ body:has(.tk-auth) { background: var(--brand-500); }
 .tk-auth__form > * { animation: none; }
 
 /* ── Liga del colaborador (huésped): fondo coral, hoja blanca con las acciones ── */
-body:has(.tk-guest) { background: var(--brand-600); }
+/* Mismo coral que el encabezado: al jalar para actualizar no se ve otra capa detrás */
+body:has(.tk-guest) { background: var(--brand-500); }
+@media (min-width: 520px) { body:has(.tk-guest) { background: var(--brand-600); } }
 .tk-guest {
   position: relative; isolation: isolate; overflow: hidden;
   min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto;
@@ -973,6 +975,28 @@ body:has(.tk-launch) { background: var(--brand-500); }
 .tk-team__role { margin-top: -6px; font: var(--t-caption); color: var(--text-muted); max-width: 100%; overflow-wrap: anywhere; }
 .tk-team__role::first-letter { text-transform: uppercase; }
 .tk-sheet__alt { display: flex; justify-content: center; margin-top: var(--s-6); }
+.tk-team__pic { position: relative; display: inline-flex; }
+.tk-team__check { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-500); color: #fff; box-shadow: 0 0 0 3px var(--surface); transform: scale(0); transition: transform var(--d-fast) cubic-bezier(.2,1.4,.4,1); }
+.tk-team__check svg { width: 16px; height: 16px; }
+.tk-team[aria-pressed="true"] .tk-avatar { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--brand-500); }
+.tk-team[aria-pressed="true"] .tk-team__check { transform: scale(1); }
+.tk-sheet__go { position: sticky; bottom: 0; margin: var(--s-4) calc(var(--s-4) * -1) 0; padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); background: var(--material); -webkit-backdrop-filter: var(--material-blur); backdrop-filter: var(--material-blur); }
+.tk-group-avatars { display: flex; justify-content: center; margin-bottom: var(--s-3); }
+.tk-group-avatars .tk-avatar { margin: 0 !important; background: #fff; box-shadow: 0 0 0 4px rgb(255 255 255 / 40%); }
+.tk-group-avatars .tk-avatar + .tk-avatar { margin-left: -18px !important; }
+.tk-guest--compact .tk-ghead:has(.tk-group-avatars) { flex-direction: column; align-items: flex-start; }
+.tk-guest--compact .tk-group-avatars .tk-avatar { width: 52px !important; height: 52px !important; }
+.tk-ghead__name--group { font: var(--t-h3); text-transform: none; }
+.tk-group-rates { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-6); }
+.tk-group-rate { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-3); border: 1px solid var(--border); border-radius: 18px; }
+.tk-group-rate .tk-rate { grid-column: 1 / -1; margin: 0; }
+.tk-group-rate__name { font: var(--t-label); text-transform: capitalize; }
+.tk-group-rate__role { font: var(--t-caption); color: var(--text-muted); }
+.tk-group-tip { margin-top: var(--s-6); }
+.tk-segment { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; margin-bottom: var(--s-3); border-radius: var(--r-md); background: var(--surface-sunken); }
+.tk-segment button { min-height: 40px; border: 0; border-radius: calc(var(--r-md) - 3px); background: transparent; font: var(--t-label); color: var(--text-muted); cursor: pointer; }
+.tk-segment button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / 10%); }
+.tk-group-tip__split { font: var(--t-small); color: var(--text-muted); margin-top: calc(var(--s-2) * -1); }
 
 /* Panel: configuración de equipo del dock */
 .tk-modes { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
