@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Btn, AppSkeleton, LaunchScreen } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import { CambiarPassword } from '@/components/CambiarPassword'
-import { loadAtlas, loadColaborador, loadHotel, loadLogin, loadResena, loadTip } from '@/routes/loaders'
+import { loadAtlas, loadColaborador, loadHotel, loadLogin, loadResena, loadTakCard, loadTip } from '@/routes/loaders'
 
 // Cada ruta es su propio archivo: el huésped no descarga los paneles ni las gráficas
 const LoginPage = lazy(() => loadLogin().then(m => ({ default: m.LoginPage })))
@@ -12,6 +12,7 @@ const HotelDashboard = lazy(() => loadHotel().then(m => ({ default: m.HotelDashb
 const ColaboradorDashboard = lazy(() => loadColaborador().then(m => ({ default: m.ColaboradorDashboard })))
 const TipPage = lazy(() => loadTip().then(m => ({ default: m.TipPage })))
 const ResenaPage = lazy(() => loadResena().then(m => ({ default: m.ResenaPage })))
+const TakCardPage = lazy(() => loadTakCard().then(m => ({ default: m.TakCardPage })))
 
 // Solo revisa si existe la llave de sesión de Supabase (no lee su contenido) para elegir la carga correcta
 function haySesionGuardada() {
@@ -38,6 +39,9 @@ export function App() {
   if (tipMatch) return <Suspense fallback={<LaunchScreen />}><TipPage linkId={tipMatch[1]} /></Suspense>
   const resenaMatch = path.match(/^\/r\/(.+)$/)
   if (resenaMatch) return <Suspense fallback={<LaunchScreen />}><ResenaPage linkId={resenaMatch[1]} /></Suspense>
+  // Pulsera tak! de un admin: linktree "Conoce tak!"
+  const takMatch = path.match(/^\/k\/([a-z0-9]+)\/?$/)
+  if (takMatch) return <Suspense fallback={<LaunchScreen />}><TakCardPage codigo={takMatch[1]} /></Suspense>
 
   // ── Rutas privadas — requieren login ─────────────────────────────────────
   if (loading) return haySesionGuardada() ? <AppSkeleton /> : <LaunchScreen />

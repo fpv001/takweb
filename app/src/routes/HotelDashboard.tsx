@@ -7,6 +7,8 @@ import { AccesosPanel } from '@/components/AccesosPanel'
 import { exportCSV, formatDateFull } from '@/lib/export'
 import { useRealtimeHotel, useRealtimeResenas } from '@/lib/realtime'
 import { fetchResenas, type Resena } from '@/lib/resenas'
+import { subirFotoColaborador } from '@/lib/fotos'
+import { FotoPicker } from '@/components/FotoPicker'
 import { googleReviewUrl, limpiarPlaceId } from '@/lib/googlePlace'
 import { etiquetasNegocio, bienvenidaNegocio, modulosDe } from '@/lib/negocio'
 import { TIP_BASE_URL, RESENA_BASE_URL, insertarColaborador, insertarConLink, linkColaborador } from '@/lib/slug'
@@ -237,7 +239,8 @@ export function HotelDashboard({ hotelId, onBack }: Props) {
     const dock = r.punto_id ? docks.find(d => d.id === r.punto_id)?.nombre ?? '—' : null
     const col = r.colaborador_id ? colaboradores.find(c => c.id === r.colaborador_id)?.nombre ?? '—' : null
     if (col && dock) return `${col} · vía ${dock}`
-    return dock ? `Dock: ${dock}` : col ?? '—'
+    // Sin colaborador ni dock: reseña directa al negocio (p. ej. pulseras tak! de los admins)
+    return dock ? `Dock: ${dock}` : col ?? 'Reseña directa'
   }
   // Vista por sucursal: docks filtrados y resumen de cada sucursal
   const docksFiltrados = filtroSucursal === 'all' ? docks : docks.filter(d => d.sucursal_id === filtroSucursal)
@@ -847,6 +850,10 @@ function HotelColModal({ colaborador, hotelId, nombreNegocio, onClose, onSave }:
   const [link, setLink] = useState(colaborador?.link_unico ?? '')
   const [linkManual, setLinkManual] = useState(false)
   const [activo, setActivo] = useState(colaborador?.activo ?? true)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoQuitada, setFotoQuitada] = useState(false)
+  // Si el alta salió bien pero la foto falló, el siguiente "Guardar" ya no vuelve a crear
+  const [creadoId, setCreadoId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -857,22 +864,37 @@ function HotelColModal({ colaborador, hotelId, nombreNegocio, onClose, onSave }:
   }
 
   async function handleSave() {
-    if (!nombre.trim() || (!colaborador && !link.trim())) { setError('Nombre y link son requeridos'); return }
+    if (!nombre.trim() || (!colaborador && !creadoId && !link.trim())) { setError('Nombre y link son requeridos'); return }
     setSaving(true); setError('')
     try {
-      if (colaborador) {
+      let id = colaborador?.id ?? creadoId
+      if (id) {
         // El enlace de un colaborador existente no cambia: la pulsera NFC ya programada depende de él
-        const { error: err } = await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, activo }).eq('id', colaborador.id)
+        const { error: err } = await supabase.from('colaboradores').update({ nombre: nombre.trim(), puesto: puesto.trim() || null, activo, ...(fotoQuitada && !fotoFile ? { foto_url: null } : {}) }).eq('id', id)
         if (err) { setError(err.message); return }
       } else {
         const res = await insertarColaborador({ nombre: nombre.trim(), puesto: puesto.trim() || null, hotel_id: hotelId, activo: true }, link.trim(), linkManual)
         if (res.error) { setError(res.error); return }
+        id = res.id ?? null
+        if (id) setCreadoId(id)
+      }
+      if (fotoFile && id) {
+        try {
+          const url = await subirFotoColaborador(id, fotoFile)
+          const { error: errFoto } = await supabase.from('colaboradores').update({ foto_url: url }).eq('id', id)
+          if (errFoto) throw errFoto
+        } catch (e: any) {
+          setError(`Los datos se guardaron, pero la foto no se subió: ${e.message}. Intenta de nuevo.`)
+          return
+        }
       }
       onSave()
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
   }
   return (
     <Modal title={colaborador ? 'Editar colaborador' : 'Nuevo colaborador'} onClose={onClose}>
+      <FotoPicker nombre={nombre} value={colaborador?.foto_url ?? null} file={fotoFile} quitada={fotoQuitada}
+        onChange={(f, quitar) => { setFotoFile(f); setFotoQuitada(!!quitar) }} />
       <FormField label="Nombre completo"><Input value={nombre} onChange={handleNombre} placeholder="Jorge Martínez" /></FormField>
       <FormField label="Puesto"><Input value={puesto} onChange={setPuesto} placeholder="Botones, Spa…" /></FormField>
       {colaborador ? (
