@@ -682,6 +682,7 @@ body:has(.tk-guest) { background: var(--brand-500); }
 .tk-option > span:nth-child(2) { flex: 1; min-width: 0; }
 .tk-option:disabled { cursor: default; opacity: .6; transform: none; }
 .tk-option:disabled:hover { border-color: var(--border); background: var(--surface); }
+.tk-video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; background: #000; object-fit: contain; }
 .tk-soon { flex-shrink: 0; padding: 4px 10px; border-radius: var(--r-full); background: var(--brand-50); color: var(--brand-700); font: var(--t-caption); font-weight: 700; }
 .tk-option[data-featured] { border-color: transparent; background: linear-gradient(135deg, var(--brand-500), var(--brand-600)); color: #fff; box-shadow: 0 10px 24px rgb(217 94 86 / 32%); }
 .tk-option[data-featured]:hover { background: linear-gradient(135deg, var(--brand-500), var(--brand-700)); }

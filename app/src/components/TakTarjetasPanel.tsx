@@ -129,7 +129,7 @@ export function TakTarjetasPanel({ onAbrirNegocio }: { onAbrirNegocio?: (hotelId
         <KpiCard label="Toques a pulseras" value={String(total.abrir)} icon="phone" featured />
         <KpiCard label="Reseñas a tak!" value={String(resenas.length)} sub={`Promedio ${promedio} ★`} icon="star" />
         <KpiCard label="Clics a Conoce tak!" value={String(total.conoce)} icon="heart" />
-        <KpiCard label="Clics al video" value={String(total.video)} sub={config.video_url ? undefined : 'Video próximamente'} icon="play" />
+        <KpiCard label="Clics al video" value={String(total.video)} icon="play" />
       </KpiRow>
 
       <SectionHeader title="Mis pulseras" subtitle="Esta es la liga que se graba en tu chip NFC" />
@@ -298,7 +298,6 @@ function TarjetaModal({ tarjeta, admins, miId, onClose, onSaved }: {
 
 function ConfigModal({ config, onClose, onSaved }: { config: Config; onClose: () => void; onSaved: () => void }) {
   const [placeId, setPlaceId] = useState(config.google_place_id ?? '')
-  const [video, setVideo] = useState(config.video_url ?? '')
   const [conoce, setConoce] = useState(config.conoce_url || '/')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -306,7 +305,6 @@ function ConfigModal({ config, onClose, onSaved }: { config: Config; onClose: ()
 
   async function guardar() {
     if (preview.error) { setError(preview.error); return }
-    if (!urlValida(video.trim())) { setError('La liga del video debe empezar con https://'); return }
     if (!conoce.trim() || !urlValida(conoce.trim())) { setError('La liga de “Conoce tak!” debe ser https://… o una ruta como /'); return }
     setSaving(true); setError('')
     if (config.hotel_id && preview.valor !== (config.google_place_id ?? '')) {
@@ -315,7 +313,6 @@ function ConfigModal({ config, onClose, onSaved }: { config: Config; onClose: ()
       if (ep) { setSaving(false); setError('No se pudo guardar el Google Place ID: ' + ep.message); return }
     }
     const { error: e } = await supabase.from('tak_config').update({
-      video_url: video.trim() || null,
       conoce_url: conoce.trim(),
       updated_at: new Date().toISOString(),
     }).eq('id', true)
@@ -334,9 +331,6 @@ function ConfigModal({ config, onClose, onSaved }: { config: Config; onClose: ()
           onClick={() => window.open(googleReviewUrl(preview.valor), '_blank', 'noopener')}>Probar enlace</Btn>
         {!preview.error && preview.advertencia && <p className="tk-muted" style={{ marginTop: 6 }}>{preview.advertencia}</p>}
       </div>
-      <FormField label="Liga del video" hint="Vacío = el botón se ve como “Próximamente”">
-        <Input value={video} onChange={setVideo} placeholder="https://youtu.be/..." />
-      </FormField>
       <FormField label="Liga de “Conoce tak!”" hint="Por defecto la página principal (/)">
         <Input value={conoce} onChange={setConoce} placeholder="/" />
       </FormField>

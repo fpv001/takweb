@@ -9,7 +9,7 @@ import logoUrl from '@/assets/tak-logo.webp'
 // Pulsera tak! de un admin (/k/<codigo>): linktree "Conoce tak!".
 //   Conoce tak!          -> landing (tak_config.conoce_url)
 //   Deja una reseña      -> estrellas + comentario; 4-5 estrellas y Place ID -> Google con el texto copiado
-//   Ver video            -> tak_config.video_url; sin URL se ve "Próximamente"
+//   Ver video            -> elige Dock o Pulsera y se reproduce aquí mismo (app/public/videos)
 // Cada toque se registra por pulsera (registrar_tak_evento) para medir a cada admin.
 
 const translations = {
@@ -22,7 +22,12 @@ const translations = {
     resena: 'Deja una reseña a tak!',
     resenaDesc: 'Cuéntanos qué te pareció',
     video: 'Ver video',
-    videoDesc: 'Mira cómo funciona tak!',
+    videoDesc: 'Dock y pulsera tak!',
+    videoPick: '¿Qué quieres ver?',
+    dock: 'Dock tak!',
+    dockDesc: 'Propinas y reseñas desde el mostrador',
+    pulsera: 'Pulsera tak!',
+    pulseraDesc: 'Propinas y reseñas con un toque',
     soon: 'Próximamente',
     back: 'Volver',
     reviewTitle: '¿Qué te pareció tak!?',
@@ -51,7 +56,12 @@ const translations = {
     resena: 'Leave tak! a review',
     resenaDesc: 'Tell us what you think',
     video: 'Watch the video',
-    videoDesc: 'See how tak! works',
+    videoDesc: 'tak! dock and wristband',
+    videoPick: 'What would you like to see?',
+    dock: 'tak! Dock',
+    dockDesc: 'Tips and reviews from the counter',
+    pulsera: 'tak! Wristband',
+    pulseraDesc: 'Tips and reviews with one tap',
     soon: 'Coming soon',
     back: 'Back',
     reviewTitle: 'What did you think of tak!?',
@@ -75,6 +85,9 @@ const translations = {
 
 type Tarjeta = { nombre: string; foto_url: string | null; google_place_id: string | null; video_url: string | null; conoce_url: string }
 type Evento = 'abrir' | 'conoce' | 'resena' | 'video' | 'google'
+type Video = 'dock' | 'pulsera'
+
+const videoSrc = (v: Video, ext: 'mp4' | 'jpg') => `${import.meta.env.BASE_URL}videos/tak-${v}.${ext}`
 
 const GOOGLE_KEY = 'tak_google_tak'
 
@@ -91,12 +104,13 @@ export function TakCardPage({ codigo }: { codigo: string }) {
 
   const [tarjeta, setTarjeta] = useState<Tarjeta | null>(null)
   const [notFound, setNotFound] = useState(false)
-  const [vista, setVista] = useState<'menu' | 'resena' | 'done'>('menu')
+  const [vista, setVista] = useState<'menu' | 'resena' | 'done' | 'video'>('menu')
   const [estrellas, setEstrellas] = useState(0)
   const [texto, setTexto] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [video, setVideo] = useState<Video | null>(null)
 
   useEffect(() => { cargar() }, [codigo])
 
@@ -119,7 +133,6 @@ export function TakCardPage({ codigo }: { codigo: string }) {
   }
 
   const conoceUrl = urlSegura(tarjeta?.conoce_url, '/') ?? '/'
-  const videoUrl = urlSegura(tarjeta?.video_url)
 
   // Misma pestaña: espera al registro un instante (máx. 600 ms) para que no se pierda al navegar
   async function irAConoce() {
@@ -128,8 +141,7 @@ export function TakCardPage({ codigo }: { codigo: string }) {
   }
 
   function abrirVideo() {
-    if (!videoUrl) return
-    window.open(videoUrl, '_blank', 'noopener')
+    setVista('video')
     registrar('video')
   }
 
@@ -246,6 +258,32 @@ export function TakCardPage({ codigo }: { codigo: string }) {
     </div>
   )
 
+  if (vista === 'video') return (
+    <div className="tk-guest tk-guest--compact">
+      {bar}
+      {header}
+      <main className="tk-gcard">
+        <Btn variant="text" icon="back" onClick={() => { if (video) setVideo(null); else setVista('menu') }}>{t.back}</Btn>
+        {video ? (
+          <>
+            <h2 className="tk-gtitle">{t[video]}</h2>
+            <video key={video} className="tk-video" src={videoSrc(video, 'mp4')} poster={videoSrc(video, 'jpg')}
+              controls autoPlay playsInline preload="metadata" />
+          </>
+        ) : (
+          <>
+            <h2 className="tk-gtitle">{t.videoPick}</h2>
+            <div className="tk-options">
+              {option(() => setVideo('dock'), 'play', t.dock, t.dockDesc)}
+              {option(() => setVideo('pulsera'), 'play', t.pulsera, t.pulseraDesc)}
+            </div>
+          </>
+        )}
+        {footer}
+      </main>
+    </div>
+  )
+
   if (vista === 'resena') return (
     <div className="tk-guest tk-guest--compact">
       {bar}
@@ -296,7 +334,7 @@ export function TakCardPage({ codigo }: { codigo: string }) {
         <div className="tk-options">
           {option(irAConoce, 'heart', t.conoce, t.conoceDesc, true)}
           {option(abrirResena, 'star', t.resena, t.resenaDesc)}
-          {option(videoUrl ? abrirVideo : undefined, 'play', t.video, t.videoDesc, false, !videoUrl)}
+          {option(abrirVideo, 'play', t.video, t.videoDesc)}
         </div>
         {footer}
       </main>

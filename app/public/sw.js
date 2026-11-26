@@ -22,6 +22,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
   if (request.url.includes('supabase.co')) return
+  if (request.url.includes('/videos/')) return
 
   event.respondWith(
     fetch(request)
