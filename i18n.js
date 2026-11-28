@@ -31,7 +31,7 @@
     'hero.p1': 'No app',
     'hero.p2': 'Any phone',
     'hero.p3': 'Optional tip',
-    'hero.img': 'Hand holding a phone near a coral silicone tak! NFC wristband',
+    'hero.img': 'Coral silicone tak! NFC wristband with the white tak! logo',
     'hero.f1': 'New review for Carlos',
     'hero.f1q': '“He made us feel at home.”',
     'hero.f2': 'Front desk',
@@ -40,7 +40,7 @@
 
     'prod.title': 'Two ways to receive <em>a thank-you.</em>',
     'prod.lead': 'Wristbands to recognize every person on your team. Docks so your customers can rate the place right from the table. Everything lands in the same dashboard.',
-    'prod.band.img': 'Three silicone tak! NFC wristbands',
+    'prod.band.img': 'Coral silicone tak! NFC wristband on a white background',
     'prod.band.tag': 'For your team',
     'prod.band.text': 'A silicone NFC wristband for each team member. Customers tap it with their phone and leave a review straight to that person.',
     'prod.band.t1': 'Review in the name of who served you',
