@@ -163,7 +163,7 @@ h2 em{font-style:normal;color:var(--coral-dark)}
 
 /* Productos */
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:clamp(32px,4vw,52px)}
-.product{display:grid;grid-template-rows:auto 1fr;overflow:hidden;border:1px solid var(--line);border-radius:28px;background:var(--white);transition:border-color .3s ease,box-shadow .3s ease}
+.product{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;overflow:hidden;border:1px solid var(--line);border-radius:28px;background:var(--white);transition:border-color .3s ease,box-shadow .3s ease}
 .product:hover{border-color:rgb(245 124 115/.45);box-shadow:0 30px 60px -36px rgb(168 58 52/.55)}
 .product-art{display:grid;place-items:center;aspect-ratio:16/9;background:radial-gradient(70% 70% at 50% 40%,#ffd9d4 0,rgb(255 217 212/0) 70%),linear-gradient(165deg,#fff1ee,#fbd0ca)}
 .product-art img{width:min(64%,320px);height:auto;filter:drop-shadow(0 24px 24px rgb(120 40 34/.25))}
@@ -423,3 +423,12 @@ h2 em{font-style:normal;color:var(--coral-dark)}
   .float-score{right:-6%;top:-5%}
   .float-tip{left:-6%;bottom:6%}
 }
+
+/* Candado pre-launch: al bajar después de los productos, la página se difumina a blanco con el scroll
+   y solo queda la lista de espera. Para lanzar, quitar class="prelaunch" de <html> en index.html. */
+.prelaunch-veil{display:none}
+.prelaunch :is(#como-funciona,#negocios,#resenas,#beneficios,#precios,#demo,#preguntas,#contacto,.product-panel),
+.prelaunch :is(.site-nav a[href="#como-funciona"],.site-nav a[href="#precios"],.site-nav a[href="#demo"],.site-nav a[href="#preguntas"],.hero a[href="#como-funciona"],.footer-links a[href="#contacto"]){display:none}
+.prelaunch .prelaunch-veil{--v:0;display:block;position:fixed;inset:0;z-index:10;pointer-events:none;opacity:var(--v);background:rgb(255 255 255/calc(.55 + var(--v)*.45));-webkit-backdrop-filter:blur(calc(var(--v)*18px));backdrop-filter:blur(calc(var(--v)*18px))}
+.prelaunch #lista-espera{margin-top:55vh;padding-bottom:clamp(64px,8vw,112px)}
+.prelaunch :is(#lista-espera,.footer){position:relative;z-index:11}

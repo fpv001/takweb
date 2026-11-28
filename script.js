@@ -375,3 +375,20 @@ document.querySelectorAll('[data-plan]').forEach((link) => {
     if (message && !message.value.trim()) message.value = t('planMessage', plan);
   });
 });
+
+// Candado pre-launch: el velo blanco entra conforme el final de los productos sube por la pantalla.
+const veil = document.querySelector('.prelaunch .prelaunch-veil');
+if (veil) {
+  const products = document.querySelector('#productos');
+  let frame = 0;
+  const updateVeil = () => {
+    frame = 0;
+    const h = window.innerHeight;
+    const v = Math.min(1, Math.max(0, (h * 0.9 - products.getBoundingClientRect().bottom) / (h * 0.5)));
+    veil.style.setProperty('--v', v.toFixed(3));
+  };
+  const queueVeil = () => { frame ||= requestAnimationFrame(updateVeil); };
+  window.addEventListener('scroll', queueVeil, { passive: true });
+  window.addEventListener('resize', queueVeil);
+  updateVeil();
+}
