@@ -40,7 +40,7 @@
 
     'prod.title': 'Two ways to receive <em>a thank-you.</em>',
     'prod.lead': 'Wristbands to recognize every person on your team. Docks so your customers can rate the place right from the table. Everything lands in the same dashboard.',
-    'prod.band.img': 'Coral silicone tak! NFC wristband on a white background',
+    'prod.band.img': 'Coral silicone tak! NFC wristband with the white tak! logo',
     'prod.band.tag': 'For your team',
     'prod.band.text': 'A silicone NFC wristband for each team member. Customers tap it with their phone and leave a review straight to that person.',
     'prod.band.t1': 'Review in the name of who served you',

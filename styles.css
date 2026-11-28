@@ -168,8 +168,7 @@ h2 em{font-style:normal;color:var(--coral-dark)}
 .product-art{display:grid;place-items:center;aspect-ratio:16/9;background:radial-gradient(70% 70% at 50% 40%,#ffd9d4 0,rgb(255 217 212/0) 70%),linear-gradient(165deg,#fff1ee,#fbd0ca)}
 .product-art img{width:min(64%,320px);height:auto;filter:drop-shadow(0 24px 24px rgb(120 40 34/.25))}
 .product-art--dock img{width:100%;height:100%;object-fit:cover;filter:none}
-.product-art--band{background:#fff}
-.product-art--band img{width:100%;height:100%;object-fit:cover;filter:none}
+.product-art--band img{width:min(70%,400px)}
 .product-body{padding:30px 32px 34px}
 .product-tag{display:inline-block;padding:5px 12px;border-radius:999px;background:#fff4f3;color:var(--coral-dark);font-size:13px;font-weight:700}
 .product h3{margin-top:14px;font-size:28px}
