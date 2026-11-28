@@ -31,7 +31,7 @@
     'hero.p1': 'No app',
     'hero.p2': 'Any phone',
     'hero.p3': 'Optional tip',
-    'hero.img': 'Coral silicone tak! NFC wristband with the white tak! logo',
+    'hero.img': 'Hand holding a phone with the tak! app open next to a coral tak! NFC wristband',
     'hero.f1': 'New review for Carlos',
     'hero.f1q': '“He made us feel at home.”',
     'hero.f2': 'Front desk',
