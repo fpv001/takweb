@@ -430,8 +430,7 @@ h2 em{font-style:normal;color:var(--coral-dark)}
 .prelaunch-veil{display:none}
 .prelaunch :is(#como-funciona,#negocios,#resenas,#beneficios,#precios,#demo,#preguntas,#contacto,.product-panel),
 .prelaunch :is(.site-nav a[href="#como-funciona"],.site-nav a[href="#precios"],.site-nav a[href="#demo"],.site-nav a[href="#preguntas"],.hero a[href="#como-funciona"],.footer-links a[href="#contacto"]){display:none}
-.prelaunch .prelaunch-veil{display:block;position:fixed;inset:0;z-index:10;pointer-events:none;opacity:var(--v);background:rgb(255 255 255/calc(.55 + var(--v)*.45));-webkit-backdrop-filter:blur(calc(var(--v)*18px));backdrop-filter:blur(calc(var(--v)*18px))}
+.prelaunch .prelaunch-veil{display:block;position:fixed;inset:0;z-index:10;pointer-events:none;opacity:var(--v);background:#fff;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);will-change:opacity}
 .prelaunch{--v:0}
-.prelaunch #lista-espera{margin-top:-38vh;padding-bottom:clamp(64px,8vw,112px)}
+.prelaunch #lista-espera{margin-top:22vh;padding-bottom:clamp(64px,8vw,112px)}
 .prelaunch :is(#lista-espera,.footer){position:relative;z-index:11}
-.prelaunch #lista-espera>.waitlist{opacity:calc(.15 + var(--v)*.85);transform:translateY(calc((1 - var(--v))*(38vh + 160px))) scale(calc(.96 + var(--v)*.04));transition:none}

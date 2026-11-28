@@ -384,8 +384,8 @@ if (veil) {
   const updateVeil = () => {
     frame = 0;
     const h = window.innerHeight;
-    const v = Math.min(1, Math.max(0, (h * 0.95 - products.getBoundingClientRect().bottom) / (h * 0.45)));
-    document.documentElement.style.setProperty('--v', v.toFixed(3));
+    const v = Math.min(1, Math.max(0, (h * 0.9 - products.getBoundingClientRect().bottom) / (h * 0.55)));
+    veil.style.setProperty('--v', v.toFixed(3));
   };
   const queueVeil = () => { frame ||= requestAnimationFrame(updateVeil); };
   window.addEventListener('scroll', queueVeil, { passive: true });
