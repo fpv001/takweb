@@ -16,7 +16,7 @@ import { FotoPicker } from '@/components/FotoPicker'
 import {
   AppLayout, PageContent, PageHeader, SectionHeader, Card, KpiRow, KpiCard,
   Table, Tr, Td, Badge, StatusBadge, ActiveBadge, Btn, IconBtn, Modal, ModalActions, FormField, Input, Select, Spinner,
-  Avatar, Alert, EmptyState, type Tone,
+  Avatar, Alert, EmptyState, Tabs, type Tone,
 } from '@/components/UI'
 import { Icon } from '@/components/Icon'
 import { TrendBars, KpiSpark } from '@/components/Stats'
@@ -28,6 +28,7 @@ type Dock = { id: string; hotel_id: string }
 type Colaborador = { id: string; nombre: string; puesto: string | null; hotel_id: string; activo: boolean; link_unico: string; created_at: string; foto_url: string | null; telefono: string | null; fecha_ingreso: string | null; notas: string | null }
 type Propina = { id: string; monto_total: number; estado: string; hotel_id: string; colaborador_id: string; created_at: string }
 type Lead = { id: string; nombre: string; negocio: string; tipo: string; correo: string; mensaje: string; estado: string; notas: string | null; created_at: string }
+type Espera = { id: string; correo: string; nombre: string | null; perfil: string; idioma: string; interes: string | null; avisado_at: string | null; created_at: string }
 type Tab = 'resumen' | 'interesados' | 'hoteles' | 'colaboradores' | 'propinas' | 'accesos' | 'tak'
 
 const ESTADOS_LEAD: Record<string, { label: string; tone: Tone }> = {
@@ -37,6 +38,18 @@ const ESTADOS_LEAD: Record<string, { label: string; tone: Tone }> = {
   cliente: { label: 'Cliente', tone: 'success' },
   descartado: { label: 'Descartado', tone: 'neutral' },
 }
+
+const PERFILES_ESPERA: Record<string, string> = {
+  negocio: 'Negocio',
+  equipo: 'Trabaja en servicio',
+  cliente: 'Cliente',
+  otro: 'Otro',
+}
+const IDIOMAS: Record<string, string> = { es: 'Español', en: 'Inglés' }
+const VISTAS_INTERESADOS = [
+  { id: 'solicitudes', label: 'Solicitudes de contacto', icon: 'message' },
+  { id: 'espera', label: 'Lista de espera', icon: 'userPlus' },
+]
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
@@ -70,6 +83,11 @@ export function AtlasAdmin() {
   const [docks, setDocks] = useState<Dock[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [leadDetalle, setLeadDetalle] = useState<Lead | null>(null)
+  const [espera, setEspera] = useState<Espera[]>([])
+  const [esperaDetalle, setEsperaDetalle] = useState<Espera | null>(null)
+  const [vistaInteresados, setVistaInteresados] = useStickyState<'solicitudes' | 'espera'>('tak:admin:interesados', 'solicitudes')
+  const [perfilFilter, setPerfilFilter] = useState('all')
+  const [idiomaFilter, setIdiomaFilter] = useState('all')
   const [estadoFilter, setEstadoFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -106,6 +124,14 @@ export function AtlasAdmin() {
     )
   }
 
+  function exportarEspera() {
+    exportCSV(
+      'lista-de-espera-tak',
+      ['Correo', 'Nombre', 'Perfil', 'Idioma', 'Interés', 'Avisado', 'Fecha'],
+      filteredEspera.map(e => [e.correo, e.nombre ?? '', PERFILES_ESPERA[e.perfil] ?? e.perfil, e.idioma, e.interes ?? '', e.avisado_at ? formatDateFull(e.avisado_at) : '', formatDateFull(e.created_at)])
+    )
+  }
+
   function exportarColaboradores() {
     exportCSV(
       'colaboradores-atlas',
@@ -119,13 +145,16 @@ export function AtlasAdmin() {
 
   // loading arranca en true: solo la primera carga muestra esqueleto, las recargas en vivo son silenciosas
   async function loadAll() {
-    const [{ data: h }, { data: c }, { data: p }, { data: l }, { data: dk }] = await Promise.all([
+    const [{ data: h }, { data: c }, { data: p }, { data: l }, { data: dk }, { data: le }] = await Promise.all([
       supabase.from('hotels').select('*').order('created_at', { ascending: false }),
       supabase.from('colaboradores').select('*').order('created_at', { ascending: false }),
       supabase.from('propinas').select('*').order('created_at', { ascending: false }),
       supabase.from('leads').select('*').order('created_at', { ascending: false }),
       supabase.from('puntos_resena').select('id, hotel_id'),
+      // Si aún no se corre db/migrations/2026-11-27_lista_espera.sql, llega vacío y no rompe nada.
+      supabase.from('lista_espera').select('*').order('created_at', { ascending: false }),
     ])
+    setEspera((le as Espera[]) ?? [])
     setDocks((dk as Dock[]) ?? [])
     setHotels((h as Hotel[]) ?? [])
     setColaboradores((c as Colaborador[]) ?? [])
@@ -152,10 +181,13 @@ export function AtlasAdmin() {
   })
 
   const filteredLeads = leads.filter(l => estadoFilter === 'all' || l.estado === estadoFilter)
+  const filteredEspera = espera.filter(e => (perfilFilter === 'all' || e.perfil === perfilFilter) && (idiomaFilter === 'all' || e.idioma === idiomaFilter)
+    && (!search || e.correo.includes(search.toLowerCase()) || e.nombre?.toLowerCase().includes(search.toLowerCase())))
+  const haceUnaSemana = Date.now() - 7 * 86400000
   const filteredProps = propinas.filter(p => hotelFilter === 'all' || p.hotel_id === hotelFilter)
 
   return (
-    <AppLayout navItems={NAV} activeTab={tab} onTabChange={id => { setTab(id as Tab); setSearch(''); setHotelFilter('all'); setEstadoFilter('all') }} title="Administración" subtitle="Operación tak!">
+    <AppLayout navItems={NAV} activeTab={tab} onTabChange={id => { setTab(id as Tab); setSearch(''); setHotelFilter('all'); setEstadoFilter('all'); setPerfilFilter('all'); setIdiomaFilter('all') }} title="Administración" subtitle="Operación tak!">
 
       <PageContent>
         {loading ? <Spinner /> : (
@@ -333,6 +365,50 @@ export function AtlasAdmin() {
 
             {/* ══ INTERESADOS ══ */}
             {tab === 'interesados' && (
+              <div className="tk-mb">
+                <Tabs items={VISTAS_INTERESADOS.map(v => v.id === 'espera' ? { ...v, label: `${v.label} (${espera.length})` } : { ...v, label: `${v.label} (${leads.length})` })} active={vistaInteresados} onChange={id => { setVistaInteresados(id as 'solicitudes' | 'espera'); setSearch('') }} />
+              </div>
+            )}
+
+            {tab === 'interesados' && vistaInteresados === 'espera' && (
+              <>
+                <PageHeader title="Lista de espera" subtitle="Personas que quieren enterarse del lanzamiento oficial" action={<Btn variant="secondary" icon="download" onClick={exportarEspera} disabled={filteredEspera.length === 0}>Exportar CSV</Btn>} />
+                <KpiRow>
+                  <KpiCard featured label="En la lista" value={String(espera.length)} sub="personas" icon="userPlus" />
+                  <KpiCard label="Esta semana" value={String(espera.filter(e => new Date(e.created_at).getTime() >= haceUnaSemana).length)} sub="nuevos registros" icon="trend" />
+                  <KpiCard label="Negocios" value={String(espera.filter(e => e.perfil === 'negocio').length)} sub="tienen o administran uno" icon="hotel" />
+                  <KpiCard label="Idioma" value={`${espera.filter(e => e.idioma === 'es').length} ES · ${espera.filter(e => e.idioma === 'en').length} EN`} sub="para el aviso de lanzamiento" icon="message" />
+                </KpiRow>
+                <div className="tk-toolbar">
+                  <input className="tk-input" type="search" aria-label="Buscar por correo o nombre" placeholder="Buscar correo o nombre" value={search} onChange={e => setSearch(e.target.value)} />
+                  <select className="tk-select" aria-label="Filtrar por perfil" value={perfilFilter} onChange={e => setPerfilFilter(e.target.value)}>
+                    <option value="all">Todos los perfiles</option>
+                    {Object.entries(PERFILES_ESPERA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                  <select className="tk-select" aria-label="Filtrar por idioma" value={idiomaFilter} onChange={e => setIdiomaFilter(e.target.value)}>
+                    <option value="all">Todos los idiomas</option>
+                    {Object.entries(IDIOMAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                {filteredEspera.length === 0 ? (
+                  <EmptyState icon="userPlus" title={espera.length ? 'Nadie coincide con estos filtros' : 'Aún no hay nadie en la lista de espera'} text={espera.length ? undefined : 'Quienes se unan desde la página (botón “Únete a la lista de espera”) aparecerán aquí.'} />
+                ) : (
+                  <Table headers={['Correo', 'Nombre', 'Perfil', 'Idioma', 'Fecha']}>
+                    {filteredEspera.map(e => (
+                      <Tr key={e.id} onClick={() => setEsperaDetalle(e)} label={`Ver registro de ${e.correo}`}>
+                        <Td bold>{e.correo}</Td>
+                        <Td muted>{e.nombre ?? '—'}</Td>
+                        <Td muted>{PERFILES_ESPERA[e.perfil] ?? e.perfil}{e.interes ? ` · ${e.interes}` : ''}</Td>
+                        <Td><Badge text={e.idioma.toUpperCase()} tone={e.idioma === 'en' ? 'info' : 'neutral'} />{e.avisado_at && <> <Badge text="Avisado" tone="success" /></>}</Td>
+                        <Td muted nowrap>{timeAgo(e.created_at)}</Td>
+                      </Tr>
+                    ))}
+                  </Table>
+                )}
+              </>
+            )}
+
+            {tab === 'interesados' && vistaInteresados === 'solicitudes' && (
               <>
                 <PageHeader title="Interesados" subtitle="Solicitudes del formulario de contacto" action={<Btn variant="secondary" icon="download" onClick={exportarLeads} disabled={leads.length === 0}>Exportar CSV</Btn>} />
                 <KpiRow>
@@ -428,9 +504,69 @@ export function AtlasAdmin() {
         />
       )}
 
+      {esperaDetalle && <EsperaModal registro={esperaDetalle} onClose={() => setEsperaDetalle(null)} onSave={() => { setEsperaDetalle(null); loadAll() }} />}
       {leadDetalle && <LeadModal lead={leadDetalle} onClose={() => setLeadDetalle(null)} onSave={() => { setLeadDetalle(null); loadAll() }} />}
       {expediente && <ExpedienteModal colaborador={expediente as ColaboradorCompleto} onClose={() => setExpediente(null)} onSave={() => { setExpediente(null); loadAll() }} />}
     </AppLayout>
+  )
+}
+
+// ─── Lista de espera: detalle ───────────────────────────────────────────────
+
+function EsperaModal({ registro, onClose, onSave }: { registro: Espera; onClose: () => void; onSave: () => void }) {
+  const [saving, setSaving] = useState(false)
+  const [confirmarBorrar, setConfirmarBorrar] = useState(false)
+  const [error, setError] = useState('')
+
+  async function marcarAvisado() {
+    setSaving(true); setError('')
+    const { error: e } = await supabase.from('lista_espera').update({ avisado_at: registro.avisado_at ? null : new Date().toISOString() }).eq('id', registro.id)
+    setSaving(false)
+    if (e) { setError(e.message); return }
+    onSave()
+  }
+
+  async function borrar() {
+    setSaving(true); setError('')
+    const { error: e } = await supabase.from('lista_espera').delete().eq('id', registro.id)
+    setSaving(false)
+    if (e) { setError(e.message); return }
+    onSave()
+  }
+
+  const asunto = 'tak! — thanks are kind!'
+  return (
+    <Modal title={registro.nombre || registro.correo} onClose={onClose}>
+      <p className="tk-muted" style={{ marginBottom: 16 }}>
+        {PERFILES_ESPERA[registro.perfil] ?? registro.perfil} · {IDIOMAS[registro.idioma] ?? registro.idioma} · se unió el {formatDate(registro.created_at)}
+      </p>
+      <FormField label="Correo">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>{registro.correo}</span>
+          <Btn small variant="secondary" icon="external" onClick={() => window.open(`mailto:${registro.correo}?subject=${encodeURIComponent(asunto)}`)}>Escribir</Btn>
+        </div>
+      </FormField>
+      {registro.interes && <FormField label="Interés"><p>{registro.interes}</p></FormField>}
+      <FormField label="Aviso de lanzamiento" hint={`Escríbele en ${registro.idioma === 'en' ? 'inglés' : 'español'}: es el idioma en que vio la página.`}>
+        <p>{registro.avisado_at ? `Avisado el ${formatDate(registro.avisado_at)}` : 'Aún no se le avisa.'}</p>
+      </FormField>
+      {error && <Alert>{error}</Alert>}
+      {confirmarBorrar && <Alert tone="warning">¿Quitar a {registro.correo} de la lista de espera? Esto no se puede deshacer.</Alert>}
+      <ModalActions>
+        {confirmarBorrar ? (
+          <>
+            <Btn variant="secondary" onClick={() => setConfirmarBorrar(false)}>Cancelar</Btn>
+            <Btn variant="danger" icon="trash" onClick={borrar} disabled={saving} loading={saving}>Quitar de la lista</Btn>
+          </>
+        ) : (
+          <>
+            <Btn variant="text" icon="trash" onClick={() => setConfirmarBorrar(true)}>Quitar</Btn>
+            <Btn variant="secondary" onClick={onClose}>Cerrar</Btn>
+            <Btn icon={registro.avisado_at ? undefined : 'check'} onClick={marcarAvisado} disabled={saving} loading={saving}>{registro.avisado_at ? 'Desmarcar avisado' : 'Marcar como avisado'}</Btn>
+          </>
+        )}
+      </ModalActions>
+    </Modal>
   )
 }
 

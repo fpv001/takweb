@@ -3,10 +3,12 @@ const menuLabel = menuButton.querySelector('.sr-only');
 const navigation = document.querySelector('.site-nav');
 const header = document.querySelector('.site-header');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+// Textos según idioma (i18n.js). Sin i18n.js, el español de siempre.
+const t = (key, ...args) => window.takI18n?.t(key, ...args) ?? key;
 
 const setMenu = (open) => {
   menuButton.setAttribute('aria-expanded', String(open));
-  menuLabel.textContent = open ? 'Cerrar menú' : 'Abrir menú';
+  menuLabel.textContent = t(open ? 'menuClose' : 'menuOpen');
   navigation.classList.toggle('is-open', open);
 };
 const menuOpen = () => menuButton.getAttribute('aria-expanded') === 'true';
@@ -227,42 +229,37 @@ document.addEventListener('keydown', (event) => {
 });
 
 // Documentos legales: diálogo accesible; sin JS, el ancla sigue funcionando.
+// Delegado en document: los enlaces dentro de textos traducidos se recrean al cambiar de idioma.
 let dialogOrigin = null;
-document.querySelectorAll('[data-dialog]').forEach((trigger) => {
-  const dialog = document.getElementById(trigger.dataset.dialog);
+document.addEventListener('click', (event) => {
+  const trigger = event.target.closest('[data-dialog]');
+  const dialog = trigger && document.getElementById(trigger.dataset.dialog);
   if (!dialog || typeof dialog.showModal !== 'function') return;
-  trigger.addEventListener('click', (event) => {
-    event.preventDefault();
-    dialogOrigin = trigger;
-    dialog.showModal();
-  });
+  event.preventDefault();
+  dialogOrigin = trigger;
+  dialog.showModal();
 });
 document.querySelectorAll('.legal-dialog').forEach((dialog) => {
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
-  dialog.addEventListener('close', () => dialogOrigin?.focus());
+  dialog.addEventListener('close', () => dialogOrigin?.isConnected && dialogOrigin.focus());
 });
 
-// Formulario de contacto: registra al interesado en el panel de Atlas.
-const form = document.querySelector('.contact-form');
-const status = document.querySelector('.form-status');
-const submitButton = form.querySelector('button[type="submit"]');
-const requiredFields = [...form.querySelectorAll('[required]')];
-
+// Validación compartida por los dos formularios.
 const validateField = (field) => {
   const error = field.closest('.field')?.querySelector('.error');
   const failed = !field.checkValidity();
   let message = '';
   if (failed) {
-    if (field.type === 'checkbox') message = 'Confirma que leíste el aviso.';
-    else if (field.validity.typeMismatch) message = 'Escribe un correo válido.';
-    else if (field.tagName === 'SELECT') message = 'Elige un tipo de negocio.';
-    else message = 'Completa este campo.';
+    if (field.type === 'checkbox') message = t(field.name === 'consent' ? 'errConsentWl' : 'errConsent');
+    else if (field.validity.typeMismatch) message = t('errEmail');
+    else if (field.tagName === 'SELECT') message = t(field.name === 'profile' ? 'errProfile' : 'errType');
+    else message = t('errRequired');
   }
   field.setAttribute('aria-invalid', String(failed));
   if (error) {
-    error.id ||= `${field.name}-error`;
+    error.id ||= `${field.id || field.name}-error`;
     error.textContent = message;
     field.setAttribute('aria-describedby', error.id);
   }
@@ -270,25 +267,38 @@ const validateField = (field) => {
 };
 
 // Tras un primer error, la corrección se confirma mientras la persona escribe.
-requiredFields.forEach((field) => {
+const watchFields = (fields) => fields.forEach((field) => {
   const recheck = () => { if (field.getAttribute('aria-invalid') === 'true') validateField(field); };
   field.addEventListener('input', recheck);
   field.addEventListener('change', recheck);
 });
+
+// Al cambiar de idioma, los errores visibles se vuelven a escribir en el idioma nuevo.
+window.takI18n?.onChange(() => {
+  document.querySelectorAll('[aria-invalid="true"]').forEach(validateField);
+  setMenu(menuOpen());
+});
+
+// Formulario de contacto: registra al interesado en el panel de Atlas.
+const form = document.querySelector('.contact-form');
+const status = form.querySelector('.form-status');
+const submitButton = form.querySelector('button[type="submit"]');
+const requiredFields = [...form.querySelectorAll('[required]')];
+watchFields(requiredFields);
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   status.textContent = '';
   const valid = requiredFields.map(validateField).every(Boolean);
   if (!valid) {
-    status.textContent = 'Revisa los campos marcados e inténtalo de nuevo.';
+    status.textContent = t('formCheck');
     form.querySelector('[aria-invalid="true"]')?.focus();
     return;
   }
   // El campo trampa sólo lo completan bots: se descarta sin procesar.
   if (form.elements.website.value) return;
   submitButton.disabled = true;
-  submitButton.textContent = 'Enviando…';
+  submitButton.textContent = t('sending');
   const { name, business, type, email, message } = form.elements;
   fetch('/api/lead', {
     method: 'POST',
@@ -298,19 +308,70 @@ form.addEventListener('submit', (event) => {
     .then((r) => {
       if (!r.ok) throw new Error();
       form.reset();
-      status.textContent = '¡Gracias! Te contactaremos muy pronto.';
+      status.textContent = t('contactOk');
     })
-    .catch(() => { status.textContent = 'No pudimos enviar tus datos. Inténtalo de nuevo en un momento.'; })
+    .catch(() => { status.textContent = t('contactFail'); })
     .finally(() => {
       submitButton.disabled = false;
-      submitButton.textContent = 'Quiero conocer tak!';
+      submitButton.textContent = t('contactSubmit');
     });
 });
 
-// Botones de plan: prellenan el mensaje del formulario.
+// Lista de espera: guarda el correo con el idioma en que se vio la página (para el aviso de lanzamiento).
+const waitlist = document.querySelector('.waitlist-form');
+const waitStatus = waitlist.querySelector('.form-status');
+const waitButton = waitlist.querySelector('button[type="submit"]');
+const waitFields = [...waitlist.querySelectorAll('[required]')];
+let planInteres = '';
+watchFields(waitFields);
+
+waitlist.addEventListener('submit', (event) => {
+  event.preventDefault();
+  waitStatus.textContent = '';
+  const valid = waitFields.map(validateField).every(Boolean);
+  if (!valid) {
+    waitStatus.textContent = t('formCheck');
+    waitlist.querySelector('[aria-invalid="true"]')?.focus();
+    return;
+  }
+  if (waitlist.elements.website.value) return;
+  waitButton.disabled = true;
+  waitButton.textContent = t('sending');
+  const { name, email, profile } = waitlist.elements;
+  fetch('/api/espera', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      correo: email.value,
+      nombre: name.value,
+      perfil: profile.value,
+      idioma: window.takI18n?.lang ?? 'es',
+      interes: planInteres ? `Plan ${planInteres}` : '',
+    }),
+  })
+    .then((r) => {
+      if (!r.ok) throw new Error();
+      waitlist.reset();
+      planInteres = '';
+      waitStatus.textContent = t('wlOk');
+    })
+    .catch(() => { waitStatus.textContent = t('wlFail'); })
+    .finally(() => {
+      waitButton.disabled = false;
+      waitButton.textContent = t('wlSubmit');
+    });
+});
+
+// Botones de plan: a la lista de espera recuerdan el plan; a contacto prellenan el mensaje.
 document.querySelectorAll('[data-plan]').forEach((link) => {
   link.addEventListener('click', () => {
+    const plan = link.dataset.plan;
+    if (link.getAttribute('href') === '#lista-espera') {
+      planInteres = plan;
+      waitStatus.textContent = t('wlPlan', plan);
+      return;
+    }
     const message = document.getElementById('message');
-    if (message && !message.value.trim()) message.value = `Me interesa el plan tak! ${link.dataset.plan}.`;
+    if (message && !message.value.trim()) message.value = t('planMessage', plan);
   });
 });

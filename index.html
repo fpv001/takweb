@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="tak! — thanks are kind! Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app." />
+  <meta name="description" content="tak! — thanks are kind! Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app. Muy pronto." />
   <meta name="theme-color" content="#fff8f6" />
   <title>tak! — thanks are kind!</title>
   <link rel="canonical" href="https://www.thanksarekind.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="tak!" />
   <meta property="og:locale" content="es_MX" />
+  <meta property="og:locale:alternate" content="en_US" />
   <meta property="og:url" content="https://www.thanksarekind.com/" />
   <meta property="og:title" content="tak! — thanks are kind!" />
   <meta property="og:description" content="Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app." />
@@ -22,215 +23,241 @@
   <meta name="twitter:title" content="tak! — thanks are kind!" />
   <meta name="twitter:description" content="Reseñas y propinas para quien te atendió, con un toque. Sin efectivo, sin app." />
   <meta name="twitter:image" content="https://www.thanksarekind.com/public/assets/og-image.jpg" />
-  <link rel="stylesheet" href="styles.css?v=20261119-5" />
+  <script>
+    // Idioma antes de pintar: ?lang= > elección guardada > idioma del dispositivo (español → es, cualquier otro → en).
+    (function () {
+      var lang = 'es';
+      try {
+        var q = new URLSearchParams(location.search).get('lang');
+        var saved = localStorage.getItem('tak:lang');
+        var device = (navigator.languages && navigator.languages[0]) || navigator.language || 'es';
+        lang = q === 'es' || q === 'en' ? q : saved === 'es' || saved === 'en' ? saved : /^es\b/i.test(device) ? 'es' : 'en';
+      } catch (e) {}
+      window.__takLang = lang;
+      document.documentElement.lang = lang;
+      if (lang !== 'es') {
+        document.documentElement.classList.add('i18n-pending');
+        setTimeout(function () { document.documentElement.classList.remove('i18n-pending'); }, 1500);
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css?v=20261127-2" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" integrity="sha512-aNMyYYxdIxIaot0Y1/PLuEu3eipGCmsEUBrUq+7aVyPGMFH8z0eTP0tkqAvv34fzN6z+201d3T8HPb1svWSKHQ==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <script src="demo.js?v=20261029-9" defer></script>
-  <script src="script.js?v=20261119-1" defer></script>
+  <script src="i18n.js?v=20261127-1" defer></script>
+  <script src="demo.js?v=20261127-1" defer></script>
+  <script src="script.js?v=20261127-1" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <a class="skip-link" href="#contenido" data-i18n="skip">Saltar al contenido</a>
   <header class="site-header" id="inicio">
-    <a class="brand" href="#inicio" aria-label="tak! — thanks are kind!, inicio">
+    <a class="brand" href="#inicio" aria-label="tak! — thanks are kind!, inicio" data-i18n-attr="aria-label:brand.aria">
       <img src="public/assets/tak-logo.png" alt="tak!" />
     </a>
-    <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr-only">Abrir menú</span></button>
-    <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a href="#productos">Productos</a><a href="#como-funciona">Cómo funciona</a><a href="#precios">Precios</a><a href="#demo">Demo</a><a href="#preguntas">Preguntas</a>
-      <a class="button button-small button-ghost nav-login" href="/admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l4-4-4-4M14 12H4"/></svg>Entrar al panel</a>
-      <a class="button button-small" href="#contacto">Hablemos</a>
+    <div class="header-tools">
+      <div class="lang-switch" role="group" aria-label="Idioma" data-i18n-attr="aria-label:lang.group">
+        <button type="button" data-lang="es" aria-pressed="true" lang="es" title="Español">ES</button>
+        <button type="button" data-lang="en" aria-pressed="false" lang="en" title="English">EN</button>
+      </div>
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr-only" data-i18n="menu.open">Abrir menú</span></button>
+    </div>
+    <nav class="site-nav" id="site-nav" aria-label="Navegación principal" data-i18n-attr="aria-label:nav.aria">
+      <a href="#productos" data-i18n="nav.products">Productos</a><a href="#como-funciona" data-i18n="nav.how">Cómo funciona</a><a href="#precios" data-i18n="nav.pricing">Precios</a><a href="#demo" data-i18n="nav.demo">Demo</a><a href="#preguntas" data-i18n="nav.faq">Preguntas</a>
+      <a class="button button-small button-ghost nav-login" href="/admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l4-4-4-4M14 12H4"/></svg><span data-i18n="nav.login">Entrar al panel</span></a>
+      <a class="button button-small" href="#lista-espera" data-i18n="nav.waitlist">Lista de espera</a>
     </nav>
   </header>
 
   <main id="contenido">
     <section class="hero section" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <h1 id="hero-title">Un gracias<br />que <em>sí llega.</em></h1>
-        <p>Tus clientes dejan una reseña a quien los atendió con un toque a su wristband. Y si quieren, suman una propina. Sin efectivo, sin app.</p>
+        <p class="soon-pill"><span class="soon-dot" aria-hidden="true"></span><b data-i18n="soon.label">Pronto</b><span data-i18n="soon.text">Lanzamiento oficial muy pronto</span></p>
+        <h1 id="hero-title" data-i18n="hero.title">Un gracias<br />que <em>sí llega.</em></h1>
+        <p data-i18n="hero.text">Tus clientes dejan una reseña a quien los atendió con un toque a su wristband. Y si quieren, suman una propina. Sin efectivo, sin app.</p>
         <div class="actions">
-          <a class="button" href="#contacto">Quiero tak! en mi negocio</a>
-          <a class="button button-ghost" href="#como-funciona">Ver cómo funciona</a>
+          <a class="button" href="#lista-espera" data-i18n="cta.join">Únete a la lista de espera</a>
+          <a class="button button-ghost" href="#como-funciona" data-i18n="hero.how">Ver cómo funciona</a>
         </div>
-        <ul class="hero-points"><li>Sin app</li><li>Cualquier teléfono</li><li>Propina opcional</li></ul>
+        <ul class="hero-points"><li data-i18n="hero.p1">Sin app</li><li data-i18n="hero.p2">Cualquier teléfono</li><li data-i18n="hero.p3">Propina opcional</li></ul>
       </div>
 
       <div class="hero-art">
         <div class="hero-stage">
-          <img class="hero-photo" src="public/assets/hero-phone-wristband.webp" width="1200" height="1295" alt="Mano con teléfono acercándose a una wristband NFC tak! de silicona coral" />
+          <img class="hero-photo" src="public/assets/hero-phone-wristband.webp" width="1200" height="1295" alt="Mano con teléfono acercándose a una wristband NFC tak! de silicona coral" data-i18n-attr="alt:hero.img" />
         </div>
         <div class="float float-review" aria-hidden="true">
           <span class="avatar">C</span>
-          <div><strong>Nueva reseña para Carlos</strong><span class="stars">★★★★★</span><p>“Nos hizo sentir en casa.”</p></div>
+          <div><strong data-i18n="hero.f1">Nueva reseña para Carlos</strong><span class="stars">★★★★★</span><p data-i18n="hero.f1q">“Nos hizo sentir en casa.”</p></div>
         </div>
-        <div class="float float-score" aria-hidden="true"><b>★ 4.9</b><span>Recepción</span></div>
-        <div class="float float-tip" aria-hidden="true"><span class="tip-dot">+</span><div><strong>Propina $50</strong><span>Opcional</span></div></div>
+        <div class="float float-score" aria-hidden="true"><b>★ 4.9</b><span data-i18n="hero.f2">Recepción</span></div>
+        <div class="float float-tip" aria-hidden="true"><span class="tip-dot">+</span><div><strong data-i18n="hero.f3">Propina $50</strong><span data-i18n="hero.f3s">Opcional</span></div></div>
       </div>
     </section>
 
     <section class="section" id="productos" aria-labelledby="productos-title">
-      <h2 id="productos-title">Dos formas de recibir <em>un gracias.</em></h2>
-      <p class="lead">Wristbands para reconocer a cada persona de tu equipo. Docks para que tus clientes califiquen el lugar desde la mesa. Todo llega al mismo panel.</p>
+      <h2 id="productos-title" data-i18n="prod.title">Dos formas de recibir <em>un gracias.</em></h2>
+      <p class="lead" data-i18n="prod.lead">Wristbands para reconocer a cada persona de tu equipo. Docks para que tus clientes califiquen el lugar desde la mesa. Todo llega al mismo panel.</p>
       <ul class="products">
         <li class="product">
-          <div class="product-art product-art--band"><img src="public/assets/three-stacked-wristbands.webp" width="1200" height="1295" alt="Tres wristbands NFC tak! de silicona" loading="lazy" /></div>
+          <div class="product-art product-art--band"><img src="public/assets/three-stacked-wristbands.webp" width="1200" height="1295" alt="Tres wristbands NFC tak! de silicona" data-i18n-attr="alt:prod.band.img" loading="lazy" /></div>
           <div class="product-body">
-            <span class="product-tag">Para tu equipo</span>
+            <span class="product-tag" data-i18n="prod.band.tag">Para tu equipo</span>
             <h3>Wristband tak!</h3>
-            <p>Una pulsera NFC de silicona para cada colaborador. El cliente la toca con su teléfono y le deja una reseña directo a esa persona.</p>
+            <p data-i18n="prod.band.text">Una pulsera NFC de silicona para cada colaborador. El cliente la toca con su teléfono y le deja una reseña directo a esa persona.</p>
             <ul class="ticks ticks-coral">
-              <li>Reseña a nombre de quien atendió</li>
-              <li>Propina opcional, sin efectivo</li>
-              <li>Vinculada a la persona y su área</li>
-              <li>Ideal para hoteles, valet, spas y eventos</li>
+              <li data-i18n="prod.band.t1">Reseña a nombre de quien atendió</li>
+              <li data-i18n="prod.band.t2">Propina opcional, sin efectivo</li>
+              <li data-i18n="prod.band.t3">Vinculada a la persona y su área</li>
+              <li data-i18n="prod.band.t4">Ideal para hoteles, valet, spas y eventos</li>
             </ul>
           </div>
         </li>
         <li class="product">
-          <div class="product-art product-art--dock"><img src="public/assets/dock-tak.webp" alt="Dock tak! coral con tarjeta de reseña de un restaurante en su ranura" loading="lazy" width="1600" height="900" />
+          <div class="product-art product-art--dock"><img src="public/assets/dock-tak.webp" alt="Dock tak! coral con tarjeta de reseña de un restaurante en su ranura" data-i18n-attr="alt:prod.dock.img" loading="lazy" width="1600" height="900" />
           </div>
           <div class="product-body">
-            <span class="product-tag">Para tu restaurante</span>
+            <span class="product-tag" data-i18n="prod.dock.tag">Para tu restaurante</span>
             <h3>Dock tak!</h3>
-            <p>Una base NFC para mesa, barra o recepción. El cliente la toca y califica su experiencia en el lugar, sin descargar nada.</p>
+            <p data-i18n="prod.dock.text">Una base NFC para mesa, barra o recepción. El cliente la toca y califica su experiencia en el lugar, sin descargar nada.</p>
             <ul class="ticks ticks-coral">
-              <li>Reseña del lugar por mesa o sucursal</li>
-              <li>Elige con foto lo que comió y califica cada platillo</li>
-              <li>Lleva al cliente a dejar su reseña en Google</li>
-              <li>Liga con el nombre e imagen de tu negocio</li>
+              <li data-i18n="prod.dock.t1">Reseña del lugar por mesa o sucursal</li>
+              <li data-i18n="prod.dock.t2">Elige con foto lo que comió y califica cada platillo</li>
+              <li data-i18n="prod.dock.t3">Lleva al cliente a dejar su reseña en Google</li>
+              <li data-i18n="prod.dock.t4">Liga con el nombre e imagen de tu negocio</li>
             </ul>
           </div>
         </li>
       </ul>
       <div class="product-panel">
         <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg></span>
-        <div><h3>Panel tak! incluido</h3><p>Reseñas, propinas, platillos y sucursales en un solo lugar. Accesos para gerentes y para cada colaborador, desde la web o como app en tu teléfono.</p></div>
-        <a class="button button-ghost button-small" href="#demo">Ver demo</a>
+        <div><h3 data-i18n="prod.panel.title">Panel tak! incluido</h3><p data-i18n="prod.panel.text">Reseñas, propinas, platillos y sucursales en un solo lugar. Accesos para gerentes y para cada colaborador, desde la web o como app en tu teléfono.</p></div>
+        <a class="button button-ghost button-small" href="#demo" data-i18n="prod.panel.cta">Ver demo</a>
       </div>
     </section>
 
     <section class="section steps-section" id="como-funciona" aria-labelledby="steps-title">
-      <h2 id="steps-title">Acerca. Reseña. <em>Agradece.</em></h2>
+      <h2 id="steps-title" data-i18n="steps.title">Acerca. Reseña. <em>Agradece.</em></h2>
       <ol class="cards cards-3 steps">
-        <li class="card"><span class="step-number card-icon">1</span><h3>Acerca tu teléfono</h3><p>Toca la wristband tak! de la persona que te atendió.</p></li>
-        <li class="card"><span class="step-number card-icon">2</span><h3>Deja tu reseña</h3><p>Califica y cuenta qué hizo bien. Si quieres, suma una propina.</p></li>
-        <li class="card"><span class="step-number card-icon">3</span><h3>Confirma</h3><p>Revisas a quién va antes de enviar. Listo.</p></li>
+        <li class="card"><span class="step-number card-icon">1</span><h3 data-i18n="steps.1t">Acerca tu teléfono</h3><p data-i18n="steps.1p">Toca la wristband tak! de la persona que te atendió.</p></li>
+        <li class="card"><span class="step-number card-icon">2</span><h3 data-i18n="steps.2t">Deja tu reseña</h3><p data-i18n="steps.2p">Califica y cuenta qué hizo bien. Si quieres, suma una propina.</p></li>
+        <li class="card"><span class="step-number card-icon">3</span><h3 data-i18n="steps.3t">Confirma</h3><p data-i18n="steps.3p">Revisas a quién va antes de enviar. Listo.</p></li>
       </ol>
     </section>
 
     <section class="section" id="negocios" aria-labelledby="negocios-title">
-      <h2 id="negocios-title">Donde hay buen servicio, hay lugar para <em>un gracias.</em></h2>
-      <p class="lead">tak! se adapta a cualquier negocio donde alguien hace que te sientas bien atendido.</p>
+      <h2 id="negocios-title" data-i18n="biz.title">Donde hay buen servicio, hay lugar para <em>un gracias.</em></h2>
+      <p class="lead" data-i18n="biz.lead">tak! se adapta a cualquier negocio donde alguien hace que te sientas bien atendido.</p>
       <ul class="cards cards-4 business">
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></span><h3>Hoteles</h3><p>Recepción, bar, alberca</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 7h3"/></svg></span><h3>Restaurantes</h3><p>Meseros y cocina</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14l-7 8zM12 12v8M8 20h8"/></svg></span><h3>Bares y clubes</h3><p>Barra y servicio</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5M3 16h18M7 19v-3M17 19v-3"/><circle cx="8" cy="13" r=".6"/><circle cx="16" cy="13" r=".6"/></svg></span><h3>Valet parking</h3><p>Primer y último contacto</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M8 8h4M15 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg></span><h3>Gasolineras</h3><p>Despachadores</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l2 3h14l2-3zM6 17V11h12v6M9 11V7h6v4M12 7V4"/></svg></span><h3>Cruceros</h3><p>Tripulación a bordo</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20c-5 0-8-3-8-8 3 0 6 1.5 8 4 2-2.5 5-4 8-4 0 5-3 8-8 8zM12 16c-1.5-2-1.5-6 0-10 1.5 4 1.5 8 0 10z"/></svg></span><h3>Spas y fitness</h3><p>Terapeutas y coaches</p></li>
-        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 0 0 4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2zM14 4v14"/></svg></span><h3>Eventos</h3><p>Staff y producción</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></span><h3 data-i18n="biz.1t">Hoteles</h3><p data-i18n="biz.1p">Recepción, bar, alberca</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 7h3"/></svg></span><h3 data-i18n="biz.2t">Restaurantes</h3><p data-i18n="biz.2p">Meseros y cocina</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14l-7 8zM12 12v8M8 20h8"/></svg></span><h3 data-i18n="biz.3t">Bares y clubes</h3><p data-i18n="biz.3p">Barra y servicio</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5M3 16h18M7 19v-3M17 19v-3"/><circle cx="8" cy="13" r=".6"/><circle cx="16" cy="13" r=".6"/></svg></span><h3 data-i18n="biz.4t">Valet parking</h3><p data-i18n="biz.4p">Primer y último contacto</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M8 8h4M15 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg></span><h3 data-i18n="biz.5t">Gasolineras</h3><p data-i18n="biz.5p">Despachadores</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l2 3h14l2-3zM6 17V11h12v6M9 11V7h6v4M12 7V4"/></svg></span><h3 data-i18n="biz.6t">Cruceros</h3><p data-i18n="biz.6p">Tripulación a bordo</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20c-5 0-8-3-8-8 3 0 6 1.5 8 4 2-2.5 5-4 8-4 0 5-3 8-8 8zM12 16c-1.5-2-1.5-6 0-10 1.5 4 1.5 8 0 10z"/></svg></span><h3 data-i18n="biz.7t">Spas y fitness</h3><p data-i18n="biz.7p">Terapeutas y coaches</p></li>
+        <li class="card"><span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 0 0 4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2zM14 4v14"/></svg></span><h3 data-i18n="biz.8t">Eventos</h3><p data-i18n="biz.8p">Staff y producción</p></li>
       </ul>
     </section>
 
     <section class="reviews" id="resenas" aria-labelledby="reviews-title">
       <div class="reviews-inner section">
         <div class="reviews-copy">
-          <h2 id="reviews-title">Cada gracias <em>cuenta algo.</em></h2>
-          <p>Las reseñas llegan a la persona y al negocio. Tu equipo sabe qué hace bien, y tú sabes qué repetir.</p>
+          <h2 id="reviews-title" data-i18n="rev.title">Cada gracias <em>cuenta algo.</em></h2>
+          <p data-i18n="rev.text">Las reseñas llegan a la persona y al negocio. Tu equipo sabe qué hace bien, y tú sabes qué repetir.</p>
           <ul class="ticks">
-            <li>Reseñas por colaborador y por área</li>
-            <li>Comentarios reales, en el momento</li>
-            <li>La propina, siempre opcional</li>
+            <li data-i18n="rev.t1">Reseñas por colaborador y por área</li>
+            <li data-i18n="rev.t2">Comentarios reales, en el momento</li>
+            <li data-i18n="rev.t3">La propina, siempre opcional</li>
           </ul>
         </div>
         <div class="reviews-art">
           <figure class="review-card">
             <div class="stars">★★★★★</div>
-            <blockquote>“Nos atendió con una calidez increíble. Hizo que todo el viaje valiera la pena.”</blockquote>
-            <figcaption><span class="avatar">M</span><span><strong>Para María</strong> · Restaurante</span></figcaption>
+            <blockquote data-i18n="rev.quote">“Nos atendió con una calidez increíble. Hizo que todo el viaje valiera la pena.”</blockquote>
+            <figcaption><span class="avatar">M</span><span data-i18n="rev.for"><strong>Para María</strong> · Restaurante</span></figcaption>
           </figure>
           <div class="panel">
-            <p class="panel-title">Reseñas de la semana</p>
+            <p class="panel-title" data-i18n="rev.week">Reseñas de la semana</p>
             <ul>
-              <li><span>Recepción</span><b>★ 4.9</b><i style="--w:98%"></i></li>
-              <li><span>Restaurante</span><b>★ 4.8</b><i style="--w:96%"></i></li>
-              <li><span>Alberca</span><b>★ 4.6</b><i style="--w:92%"></i></li>
+              <li><span data-i18n="rev.a1">Recepción</span><b>★ 4.9</b><i style="--w:98%"></i></li>
+              <li><span data-i18n="rev.a2">Restaurante</span><b>★ 4.8</b><i style="--w:96%"></i></li>
+              <li><span data-i18n="rev.a3">Alberca</span><b>★ 4.6</b><i style="--w:92%"></i></li>
             </ul>
           </div>
-          <small class="art-note">Ejemplos ilustrativos</small>
+          <small class="art-note" data-i18n="rev.note">Ejemplos ilustrativos</small>
         </div>
       </div>
     </section>
 
     <section class="section" id="beneficios" aria-labelledby="benefits-title">
-      <h2 id="benefits-title">Más reconocimiento para tu equipo, <em>menos fricción</em> para tus clientes.</h2>
+      <h2 id="benefits-title" data-i18n="ben.title">Más reconocimiento para tu equipo, <em>menos fricción</em> para tus clientes.</h2>
       <ul class="cards cards-3 benefits">
         <li class="card">
           <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg></span>
-          <h3>Mejor reputación</h3><p>Las reseñas te muestran la experiencia real de tus clientes, persona por persona.</p>
+          <h3 data-i18n="ben.1t">Mejor reputación</h3><p data-i18n="ben.1p">Las reseñas te muestran la experiencia real de tus clientes, persona por persona.</p>
         </li>
         <li class="card">
           <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4-7 8-7s7 2.5 8 7"/></svg></span>
-          <h3>Equipo motivado</h3><p>Reconocimiento directo y justo que fortalece el orgullo de pertenecer.</p>
+          <h3 data-i18n="ben.2t">Equipo motivado</h3><p data-i18n="ben.2p">Reconocimiento directo y justo que fortalece el orgullo de pertenecer.</p>
         </li>
         <li class="card">
           <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
-          <h3>Todo registrado</h3><p>Cada reseña y cada propina quedan con su persona, fecha y contexto.</p>
+          <h3 data-i18n="ben.3t">Todo registrado</h3><p data-i18n="ben.3p">Cada reseña y cada propina quedan con su persona, fecha y contexto.</p>
         </li>
       </ul>
     </section>
 
     <section class="section" id="precios" aria-labelledby="precios-title">
-      <h2 id="precios-title">Un plan para cada <em>tamaño de equipo.</em></h2>
-      <p class="lead">Precios mensuales en pesos mexicanos. Elige el que va con tu negocio y crece cuando lo necesites.</p>
+      <h2 id="precios-title" data-i18n="price.title">Un plan para cada <em>tamaño de equipo.</em></h2>
+      <p class="lead" data-i18n="price.lead">Precios mensuales en pesos mexicanos. Los planes estarán disponibles en el lanzamiento: únete a la lista de espera y te avisamos primero.</p>
       <ul class="plans">
         <li class="plan">
-          <div class="plan-head"><h3>tak! Essential</h3><span class="plan-badge">Entrada</span></div>
-          <p class="plan-price"><strong>$699</strong><span>MXN/mes</span></p>
-          <p class="plan-for">Para hostales, estéticas, valet parking y negocios pequeños.</p>
+          <div class="plan-head"><h3>tak! Essential</h3><span class="plan-badge" data-i18n="price.b1">Entrada</span></div>
+          <p class="plan-price"><strong>$699</strong><span data-i18n="price.month">MXN/mes</span></p>
+          <p class="plan-for" data-i18n="price.1for">Para hostales, estéticas, valet parking y negocios pequeños.</p>
           <ul class="plan-list">
-            <li>Dashboard con propinas totales y número de transacciones.</li>
-            <li>Analíticas básicas por empleado y periodo.</li>
-            <li>Reportes con marca tak!.</li>
-            <li>1 dock tak! incluido.</li>
+            <li data-i18n="price.1l1">Dashboard con propinas totales y número de transacciones.</li>
+            <li data-i18n="price.1l2">Analíticas básicas por empleado y periodo.</li>
+            <li data-i18n="price.1l3">Reportes con marca tak!.</li>
+            <li data-i18n="price.1l4">1 dock tak! incluido.</li>
           </ul>
-          <a class="button button-ghost" href="#contacto" data-plan="Essential">Empezar con Essential</a>
+          <a class="button button-ghost" href="#lista-espera" data-plan="Essential" data-i18n="cta.join">Únete a la lista de espera</a>
         </li>
         <li class="plan plan--featured">
-          <div class="plan-head"><h3>tak! Business</h3><span class="plan-badge">Recomendado</span></div>
-          <p class="plan-price"><strong>$1,999</strong><span>MXN/mes</span></p>
-          <p class="plan-for">Para hoteles medianos y negocios con varios equipos.</p>
+          <div class="plan-head"><h3>tak! Business</h3><span class="plan-badge" data-i18n="price.b2">Recomendado</span></div>
+          <p class="plan-price"><strong>$1,999</strong><span data-i18n="price.month">MXN/mes</span></p>
+          <p class="plan-for" data-i18n="price.2for">Para hoteles medianos y negocios con varios equipos.</p>
           <ul class="plan-list">
-            <li>Hasta 100 empleados activos al mes.</li>
-            <li>Analíticas avanzadas y tendencias de propinas.</li>
-            <li>Comparativas por área, turno y empleado.</li>
-            <li>Personalización con el logo y colores del establecimiento.</li>
-            <li>Exportación de reportes y gestión de varios administradores.</li>
-            <li>Brazaletes NFC y docks cotizados según tus necesidades.</li>
+            <li data-i18n="price.2l1">Hasta 100 empleados activos al mes.</li>
+            <li data-i18n="price.2l2">Analíticas avanzadas y tendencias de propinas.</li>
+            <li data-i18n="price.2l3">Comparativas por área, turno y empleado.</li>
+            <li data-i18n="price.2l4">Personalización con el logo y colores del establecimiento.</li>
+            <li data-i18n="price.2l5">Exportación de reportes y gestión de varios administradores.</li>
+            <li data-i18n="price.nfc">Brazaletes NFC y docks cotizados según tus necesidades.</li>
           </ul>
-          <a class="button" href="#contacto" data-plan="Business">Empezar con Business</a>
+          <a class="button" href="#lista-espera" data-plan="Business" data-i18n="cta.join">Únete a la lista de espera</a>
         </li>
         <li class="plan">
           <div class="plan-head"><h3>tak! Enterprise</h3><span class="plan-badge plan-badge--pro">Pro</span></div>
-          <p class="plan-price"><small>Desde</small><strong>$4,999</strong><span>MXN/mes</span></p>
-          <p class="plan-for">Para hoteles grandes, resorts y grupos hoteleros.</p>
+          <p class="plan-price"><small data-i18n="price.from">Desde</small><strong>$4,999</strong><span data-i18n="price.month">MXN/mes</span></p>
+          <p class="plan-for" data-i18n="price.3for">Para hoteles grandes, resorts y grupos hoteleros.</p>
           <ul class="plan-list">
-            <li>Hasta 300 empleados activos al mes.</li>
-            <li>Analíticas avanzadas y panel ejecutivo.</li>
-            <li>Marca blanca: experiencia y reportes con identidad del cliente.</li>
-            <li>Varias propiedades y permisos por ubicación.</li>
-            <li>Reportes consolidados y soporte prioritario.</li>
-            <li>Integraciones y configuración empresarial cotizadas según alcance.</li>
-            <li>Brazaletes NFC y docks cotizados según tus necesidades.</li>
+            <li data-i18n="price.3l1">Hasta 300 empleados activos al mes.</li>
+            <li data-i18n="price.3l2">Analíticas avanzadas y panel ejecutivo.</li>
+            <li data-i18n="price.3l3">Marca blanca: experiencia y reportes con identidad del cliente.</li>
+            <li data-i18n="price.3l4">Varias propiedades y permisos por ubicación.</li>
+            <li data-i18n="price.3l5">Reportes consolidados y soporte prioritario.</li>
+            <li data-i18n="price.3l6">Integraciones y configuración empresarial cotizadas según alcance.</li>
+            <li data-i18n="price.nfc">Brazaletes NFC y docks cotizados según tus necesidades.</li>
           </ul>
-          <a class="button button-ghost" href="#contacto" data-plan="Enterprise">Hablar con ventas</a>
+          <a class="button button-ghost" href="#contacto" data-plan="Enterprise" data-i18n="price.sales">Hablar con ventas</a>
         </li>
       </ul>
       <div class="plan-addon">
         <span class="card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="11" rx="2"/><path d="M3 17h18v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 7v3M10.5 8.5h3"/></svg></span>
-        <div><h3>Docks adicionales en Essential</h3><p>¿Más mesas, barras o sucursales? Agrega los docks que necesites. En Business y Enterprise los cotizamos con tu plan.</p></div>
+        <div><h3 data-i18n="price.addon.t">Docks adicionales en Essential</h3><p data-i18n="price.addon.p">¿Más mesas, barras o sucursales? Agrega los docks que necesites. En Business y Enterprise los cotizamos con tu plan.</p></div>
         <dl class="addon-prices">
-          <div><dt>Instalación</dt><dd><strong>$160</strong> MXN por dock</dd></div>
-          <div><dt>Uso en el sistema</dt><dd><strong>$40</strong> MXN/mes por dock</dd></div>
+          <div><dt data-i18n="price.addon.install">Instalación</dt><dd data-i18n="price.addon.installv"><strong>$160</strong> MXN por dock</dd></div>
+          <div><dt data-i18n="price.addon.use">Uso en el sistema</dt><dd data-i18n="price.addon.usev"><strong>$40</strong> MXN/mes por dock</dd></div>
         </dl>
       </div>
     </section>
@@ -238,59 +265,91 @@
     <section class="section" id="demo" aria-labelledby="demo-title">
       <div class="demo-head">
         <div>
-          <h2 id="demo-title">Así se ve <em>tu panel.</em></h2>
-          <p class="lead">Explora el dashboard de tak! con datos de ejemplo. Simula una reseña y mira cómo llega en vivo.</p>
+          <h2 id="demo-title" data-i18n="demo.title">Así se ve <em>tu panel.</em></h2>
+          <p class="lead" data-i18n="demo.lead">Explora el dashboard de tak! con datos de ejemplo. Simula una reseña y mira cómo llega en vivo.</p>
         </div>
-        <button class="button" type="button" data-demo-simulate>Simular reseña</button>
+        <button class="button" type="button" data-demo-simulate data-i18n="demo.simulate">Simular reseña</button>
       </div>
       <div class="dash" data-demo>
         <aside class="dash-side">
           <div class="dash-brand"><img src="public/assets/tak-logo.png" alt="tak!" /><span>Hotel Casa Coral</span></div>
-          <div class="dash-nav" role="tablist" aria-label="Secciones del panel">
-            <button type="button" role="tab" aria-selected="true" data-tab="resumen"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Resumen</button>
-            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="resenas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>Reseñas</button>
-            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="equipo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.8 3.3-6 6.5-6s5.7 2.2 6.5 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .6 3.2 2.6 3.5 6"/></svg>Mi equipo</button>
-            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="propinas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M7 15h3"/></svg>Propinas</button>
+          <div class="dash-nav" role="tablist" aria-label="Secciones del panel" data-i18n-attr="aria-label:demo.tabs">
+            <button type="button" role="tab" aria-selected="true" data-tab="resumen"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg><span data-i18n="demo.tab1">Resumen</span></button>
+            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="resenas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg><span data-i18n="demo.tab2">Reseñas</span></button>
+            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="equipo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.8 3.3-6 6.5-6s5.7 2.2 6.5 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .6 3.2 2.6 3.5 6"/></svg><span data-i18n="demo.tab3">Mi equipo</span></button>
+            <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="propinas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M7 15h3"/></svg><span data-i18n="demo.tab4">Propinas</span></button>
           </div>
         </aside>
         <div class="dash-main" role="tabpanel" aria-live="polite" data-demo-panel></div>
         <div class="dash-toast" aria-hidden="true" data-demo-toast></div>
       </div>
-      <p class="demo-disclaimer">Demo con datos ficticios. Tu panel real muestra la información de tu negocio.</p>
+      <p class="demo-disclaimer" data-i18n="demo.note">Demo con datos ficticios. Tu panel real muestra la información de tu negocio.</p>
+    </section>
+
+    <section class="section" id="lista-espera" aria-labelledby="waitlist-title">
+      <div class="waitlist">
+        <div class="waitlist-copy">
+          <p class="soon-pill soon-pill--light"><span class="soon-dot" aria-hidden="true"></span><b data-i18n="soon.label">Pronto</b><span data-i18n="wl.pill">Estamos por lanzar</span></p>
+          <h2 id="waitlist-title" data-i18n="wl.title">Únete a la <em>lista de espera.</em></h2>
+          <p data-i18n="wl.text">tak! está por lanzarse oficialmente. Déjanos tu correo y serás de los primeros en saber la fecha, las novedades y cómo tener acceso anticipado.</p>
+          <ul class="ticks">
+            <li data-i18n="wl.t1">Aviso del lanzamiento oficial</li>
+            <li data-i18n="wl.t2">Acceso anticipado para negocios</li>
+            <li data-i18n="wl.t3">Sin spam: solo lo importante</li>
+          </ul>
+        </div>
+        <form class="waitlist-form" novalidate>
+          <div class="field"><label for="wl-email" data-i18n="wl.email">Correo</label><input id="wl-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="tu@correo.com" data-i18n-attr="placeholder:wl.emailph" /><small class="error"></small></div>
+          <div class="field"><label for="wl-name"><span data-i18n="wl.name">Nombre</span> <span class="optional" data-i18n="wl.optional">(opcional)</span></label><input id="wl-name" name="name" autocomplete="name" maxlength="120" /><small class="error"></small></div>
+          <div class="field"><label for="wl-profile" data-i18n="wl.profile">Me interesa porque…</label>
+            <select id="wl-profile" name="profile" required>
+              <option value="negocio" data-i18n="wl.p1">Tengo o administro un negocio</option>
+              <option value="equipo" data-i18n="wl.p2">Trabajo atendiendo clientes</option>
+              <option value="cliente" data-i18n="wl.p3">Quiero agradecer como cliente</option>
+              <option value="otro" data-i18n="wl.p4">Otro motivo</option>
+            </select><small class="error"></small></div>
+          <div class="field"><label class="consent"><input type="checkbox" name="consent" required /> <span data-i18n="wl.consent">Acepto recibir correos de tak! y leí el <a href="#privacidad" data-dialog="privacidad">Aviso de Privacidad</a>.</span></label><small class="error"></small></div>
+          <div class="field-trap" aria-hidden="true"><label for="wl-website">Sitio web</label><input id="wl-website" name="website" tabindex="-1" autocomplete="off" /></div>
+          <button class="button button-dark" type="submit" data-i18n="cta.join">Únete a la lista de espera</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
     </section>
 
     <section class="section" id="preguntas" aria-labelledby="faq-title">
-      <h2 id="faq-title">Preguntas frecuentes</h2>
+      <h2 id="faq-title" data-i18n="faq.title">Preguntas frecuentes</h2>
       <div class="faq-list">
-        <details><summary>¿Mis clientes necesitan una app?</summary><p>No. Acercan su teléfono a la wristband o al dock y todo se abre en el navegador.</p></details>
-        <details><summary>¿Qué diferencia hay entre wristband y dock?</summary><p>La wristband la lleva cada colaborador: la reseña y la propina van a esa persona. El dock va en la mesa, barra o recepción: el cliente califica el lugar y sus platillos, y puede dejar su reseña en Google.</p></details>
-        <details><summary>¿Cuánto cuesta un dock adicional?</summary><p>El plan Essential incluye un dock. Cada dock adicional tiene una instalación de $160 MXN y un uso de $40 MXN al mes. En Business y Enterprise, los docks y brazaletes se cotizan según lo que necesite tu negocio.</p></details>
-        <details><summary>Ya tengo tak!, ¿cómo entro a mi panel?</summary><p>Con el botón <a href="/admin">Entrar al panel</a> hasta arriba, usando el correo y contraseña que te dimos de alta.</p></details>
-        <details><summary>¿Cómo le llega la reseña a mi equipo?</summary><p>Cada wristband está vinculada a una persona y su área. La reseña queda a su nombre y tú la ves en tu panel.</p></details>
-        <details><summary>¿La propina es obligatoria?</summary><p>No. Tus clientes pueden dejar solo una reseña, solo una propina o ambas. Ellos deciden.</p></details>
-        <details><summary>¿Qué registros tengo?</summary><p>Reseñas y propinas por colaborador, área y fecha, para que sepas qué está funcionando.</p></details>
-        <details><summary>¿Funciona con turistas extranjeros?</summary><p>Sí. La experiencia está pensada para que cualquier huésped pueda agradecer desde su teléfono, venga de donde venga.</p></details>
-        <details><summary>¿Cuánto cuesta?</summary><p>Hay tres planes mensuales: Essential desde $699, Business desde $1,999 y Enterprise desde $4,999 MXN al mes. <a href="#precios">Ver planes</a>.</p></details>
-        <details><summary>¿Cómo empiezo?</summary><p>Cuéntanos sobre tu negocio en el formulario y nos pondremos en contacto contigo.</p></details>
+        <details><summary data-i18n="faq.0q">¿Cuándo lanzan tak!?</summary><p data-i18n="faq.0a">Muy pronto. <a href="#lista-espera">Únete a la lista de espera</a> y te avisaremos por correo en cuanto sea el lanzamiento oficial.</p></details>
+        <details><summary data-i18n="faq.1q">¿Mis clientes necesitan una app?</summary><p data-i18n="faq.1a">No. Acercan su teléfono a la wristband o al dock y todo se abre en el navegador.</p></details>
+        <details><summary data-i18n="faq.2q">¿Qué diferencia hay entre wristband y dock?</summary><p data-i18n="faq.2a">La wristband la lleva cada colaborador: la reseña y la propina van a esa persona. El dock va en la mesa, barra o recepción: el cliente califica el lugar y sus platillos, y puede dejar su reseña en Google.</p></details>
+        <details><summary data-i18n="faq.3q">¿Cuánto cuesta un dock adicional?</summary><p data-i18n="faq.3a">El plan Essential incluye un dock. Cada dock adicional tiene una instalación de $160 MXN y un uso de $40 MXN al mes. En Business y Enterprise, los docks y brazaletes se cotizan según lo que necesite tu negocio.</p></details>
+        <details><summary data-i18n="faq.4q">Ya tengo tak!, ¿cómo entro a mi panel?</summary><p data-i18n="faq.4a">Con el botón <a href="/admin">Entrar al panel</a> hasta arriba, usando el correo y contraseña que te dimos de alta.</p></details>
+        <details><summary data-i18n="faq.5q">¿Cómo le llega la reseña a mi equipo?</summary><p data-i18n="faq.5a">Cada wristband está vinculada a una persona y su área. La reseña queda a su nombre y tú la ves en tu panel.</p></details>
+        <details><summary data-i18n="faq.6q">¿La propina es obligatoria?</summary><p data-i18n="faq.6a">No. Tus clientes pueden dejar solo una reseña, solo una propina o ambas. Ellos deciden.</p></details>
+        <details><summary data-i18n="faq.7q">¿Qué registros tengo?</summary><p data-i18n="faq.7a">Reseñas y propinas por colaborador, área y fecha, para que sepas qué está funcionando.</p></details>
+        <details><summary data-i18n="faq.8q">¿Funciona con turistas extranjeros?</summary><p data-i18n="faq.8a">Sí. La experiencia está pensada para que cualquier huésped pueda agradecer desde su teléfono, venga de donde venga.</p></details>
+        <details><summary data-i18n="faq.9q">¿Cuánto cuesta?</summary><p data-i18n="faq.9a">Hay tres planes mensuales: Essential desde $699, Business desde $1,999 y Enterprise desde $4,999 MXN al mes. <a href="#precios">Ver planes</a>.</p></details>
+        <details><summary data-i18n="faq.10q">¿Cómo empiezo?</summary><p data-i18n="faq.10a">Únete a la lista de espera para enterarte del lanzamiento. Si tienes un negocio y quieres platicar antes, escríbenos en el formulario de contacto.</p></details>
       </div>
     </section>
 
     <section class="section" id="contacto" aria-labelledby="contact-title">
       <div class="contact">
-        <h2 id="contact-title">¿Listo para llevar tak! a tu negocio?</h2>
+        <h2 id="contact-title" data-i18n="ct.title">¿Tienes un negocio? Hablemos.</h2>
+        <p class="contact-lead" data-i18n="ct.lead">Si quieres llevar tak! a tu negocio desde el lanzamiento, cuéntanos y te contactamos.</p>
         <form class="contact-form" novalidate>
-          <div class="field"><label for="name">Nombre</label><input id="name" name="name" autocomplete="name" required /><small class="error"></small></div>
-          <div class="field"><label for="business">Negocio</label><input id="business" name="business" autocomplete="organization" required /><small class="error"></small></div>
-          <div class="field"><label for="type">Tipo de negocio</label>
+          <div class="field"><label for="name" data-i18n="ct.name">Nombre</label><input id="name" name="name" autocomplete="name" required /><small class="error"></small></div>
+          <div class="field"><label for="business" data-i18n="ct.business">Negocio</label><input id="business" name="business" autocomplete="organization" required /><small class="error"></small></div>
+          <div class="field"><label for="type" data-i18n="ct.type">Tipo de negocio</label>
             <select id="type" name="type" required>
-              <option value="hotel">Hotel</option><option value="restaurante">Restaurante</option><option value="bar">Bar o club</option><option value="valet">Valet parking</option><option value="gasolinera">Gasolinera</option><option value="crucero">Crucero</option><option value="spa">Spa o fitness</option><option value="eventos">Eventos</option><option value="otro">Otro</option>
+              <option value="hotel" data-i18n="ct.o1">Hotel</option><option value="restaurante" data-i18n="ct.o2">Restaurante</option><option value="bar" data-i18n="ct.o3">Bar o club</option><option value="valet" data-i18n="ct.o4">Valet parking</option><option value="gasolinera" data-i18n="ct.o5">Gasolinera</option><option value="crucero" data-i18n="ct.o6">Crucero</option><option value="spa" data-i18n="ct.o7">Spa o fitness</option><option value="eventos" data-i18n="ct.o8">Eventos</option><option value="otro" data-i18n="ct.o9">Otro</option>
             </select><small class="error"></small></div>
-          <div class="field"><label for="email">Correo</label><input id="email" name="email" type="email" autocomplete="email" required /><small class="error"></small></div>
-          <div class="field field-wide"><label for="message">Mensaje</label><textarea id="message" name="message" rows="3" placeholder="Cuéntanos sobre tu negocio y tu equipo." required></textarea><small class="error"></small></div>
-          <div class="field field-wide"><label class="consent"><input type="checkbox" name="privacy" required /> <span>He leído el <a href="#privacidad" data-dialog="privacidad">Aviso de Privacidad</a>.</span></label><small class="error"></small></div>
+          <div class="field"><label for="email" data-i18n="ct.email">Correo</label><input id="email" name="email" type="email" autocomplete="email" required /><small class="error"></small></div>
+          <div class="field field-wide"><label for="message" data-i18n="ct.message">Mensaje</label><textarea id="message" name="message" rows="3" placeholder="Cuéntanos sobre tu negocio y tu equipo." data-i18n-attr="placeholder:ct.messageph" required></textarea><small class="error"></small></div>
+          <div class="field field-wide"><label class="consent"><input type="checkbox" name="privacy" required /> <span data-i18n="ct.privacy">He leído el <a href="#privacidad" data-dialog="privacidad">Aviso de Privacidad</a>.</span></label><small class="error"></small></div>
           <div class="field-trap" aria-hidden="true"><label for="website">Sitio web</label><input id="website" name="website" tabindex="-1" autocomplete="off" /></div>
           <div class="form-actions field-wide">
-            <button class="button" type="submit">Quiero conocer tak!</button>
+            <button class="button" type="submit" data-i18n="ct.submit">Quiero conocer tak!</button>
           </div>
           <p class="form-status field-wide" role="status" aria-live="polite"></p>
         </form>
@@ -299,25 +358,26 @@
   </main>
 
   <footer class="footer section">
-    <p><span class="wordmark">tak<b>!</b></span> — thanks are kind!</p>
-    <nav class="footer-links" aria-label="Enlaces del pie de página">
-      <a href="#contacto">Contacto</a>
-      <a href="#terminos" data-dialog="terminos">Términos de uso</a>
-      <a href="#privacidad" data-dialog="privacidad">Privacidad</a>
+    <p><span class="wordmark">tak<b>!</b></span> — thanks are kind! · <span data-i18n="soon.footer">Muy pronto</span></p>
+    <nav class="footer-links" aria-label="Enlaces del pie de página" data-i18n-attr="aria-label:foot.aria">
+      <a href="#lista-espera" data-i18n="nav.waitlist">Lista de espera</a>
+      <a href="#contacto" data-i18n="foot.contact">Contacto</a>
+      <a href="#terminos" data-dialog="terminos" data-i18n="foot.terms">Términos de uso</a>
+      <a href="#privacidad" data-dialog="privacidad" data-i18n="foot.privacy">Privacidad</a>
     </nav>
   </footer>
 
   <dialog class="legal-dialog" id="privacidad" aria-labelledby="privacidad-title">
-    <p class="label">Aviso de Privacidad</p>
-    <h2 id="privacidad-title">Documento en preparación.</h2>
-    <p>Los datos que nos compartes en el formulario de contacto (nombre, negocio, correo y mensaje) se usan únicamente para responder tu solicitud y darte información sobre tak!. Publicaremos el Aviso de Privacidad completo próximamente.</p>
-    <form method="dialog"><button class="button" type="submit">Entendido</button></form>
+    <p class="label" data-i18n="legal.privacy">Aviso de Privacidad</p>
+    <h2 id="privacidad-title" data-i18n="legal.prep">Documento en preparación.</h2>
+    <p data-i18n="legal.privacyText">Los datos que nos compartes en los formularios (nombre, negocio, correo y mensaje) se usan únicamente para responder tu solicitud y, si te uniste a la lista de espera, para avisarte del lanzamiento y darte información sobre tak!. Puedes pedir que te quitemos de la lista respondiendo a cualquiera de nuestros correos. Publicaremos el Aviso de Privacidad completo próximamente.</p>
+    <form method="dialog"><button class="button" type="submit" data-i18n="legal.ok">Entendido</button></form>
   </dialog>
   <dialog class="legal-dialog" id="terminos" aria-labelledby="terminos-title">
-    <p class="label">Términos de uso</p>
-    <h2 id="terminos-title">Documento en preparación.</h2>
-    <p>Los Términos de uso de tak! se publicarán junto con el lanzamiento comercial. Si tienes dudas, escríbenos desde la sección de contacto.</p>
-    <form method="dialog"><button class="button" type="submit">Entendido</button></form>
+    <p class="label" data-i18n="legal.terms">Términos de uso</p>
+    <h2 id="terminos-title" data-i18n="legal.prep">Documento en preparación.</h2>
+    <p data-i18n="legal.termsText">Los Términos de uso de tak! se publicarán junto con el lanzamiento comercial. Si tienes dudas, escríbenos desde la sección de contacto.</p>
+    <form method="dialog"><button class="button" type="submit" data-i18n="legal.ok">Entendido</button></form>
   </dialog>
 </body>
 </html>

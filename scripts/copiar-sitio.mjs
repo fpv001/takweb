@@ -8,7 +8,7 @@ const root = process.cwd()
 const out = join(root, 'dist')
 
 // Archivos y carpetas públicos del sitio. Si agregas una página o asset nuevo en la raíz, agrégalo aquí.
-const PUBLICOS = ['index.html', 'styles.css', 'script.js', 'demo.js', 'public', 'admin']
+const PUBLICOS = ['index.html', 'styles.css', 'i18n.js', 'script.js', 'demo.js', 'public', 'admin']
 
 rmSync(out, { recursive: true, force: true })
 mkdirSync(out)
