@@ -140,19 +140,13 @@ h2 em{font-style:normal;color:var(--coral-dark)}
 .i18n-pending body{visibility:hidden}
 
 /* Pronto / Coming soon */
-.soon-pill{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:24px;padding:8px 16px 8px 12px;border-radius:999px;background:var(--white);box-shadow:inset 0 0 0 1px rgb(245 124 115/.45);font-size:14px;font-weight:600;color:var(--muted)}
-.soon-pill b{color:var(--coral-dark);text-transform:uppercase;letter-spacing:.08em;font-size:13px}
-.soon-dot{position:relative;width:10px;height:10px;border-radius:50%;background:var(--coral)}
-.soon-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--coral);animation:soon-ping 1.8s cubic-bezier(0,0,.2,1) infinite}
-@keyframes soon-ping{75%,100%{transform:scale(2.4);opacity:0}}
-.soon-pill--light{background:rgb(255 255 255/.6);box-shadow:none;color:var(--ink)}
-.soon-pill--light b{color:var(--ink)}
-.soon-pill--light .soon-dot,.soon-pill--light .soon-dot::after{background:var(--ink)}
+.soon-note{margin-bottom:20px;font-size:15px;font-weight:700;color:var(--coral-dark)}
+.waitlist .soon-note{color:var(--ink);opacity:.75}
 
 /* Lista de espera */
 .waitlist{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:center;padding:clamp(32px,5vw,64px);border-radius:32px;background:var(--coral);box-shadow:0 40px 80px -50px rgb(168 58 52/.7)}
 .waitlist h2 em{color:var(--white)}
-.waitlist-copy>p:not(.soon-pill){margin-top:20px;max-width:40ch;font-size:clamp(17px,1.5vw,20px);line-height:1.5}
+.waitlist-copy>p:not(.soon-note){margin-top:20px;max-width:40ch;font-size:clamp(17px,1.5vw,20px);line-height:1.5}
 .waitlist .ticks{margin-top:26px}
 .waitlist-form{display:grid;gap:16px;padding:clamp(22px,3vw,32px);border-radius:24px;background:var(--white)}
 .waitlist-form .field input:not([type=checkbox]),.waitlist-form .field select{background-color:var(--paper);border-color:var(--line)}
@@ -418,7 +412,6 @@ h2 em{font-style:normal;color:var(--coral-dark)}
   .contact-form{grid-template-columns:1fr}
   .waitlist{margin-inline:calc(var(--gutter)*-.5);border-radius:26px;padding:28px 18px}
   .waitlist-form{padding:20px 16px}
-  .soon-pill{font-size:13px}
   .form-actions .button{width:100%}
   .faq-list summary{padding:18px 20px}
   .faq-list details p{padding:0 20px 20px}
